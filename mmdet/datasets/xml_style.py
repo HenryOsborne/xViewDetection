@@ -39,7 +39,7 @@ class XMLDataset(CustomDataset):
         data_infos = []
         img_ids = mmcv.list_from_file(ann_file)
         for img_id in img_ids:
-            filename = f'JPEGImages/{img_id}.jpg'
+            filename = f'JPEGImages/{img_id}.png'
             xml_path = osp.join(self.img_prefix, 'Annotations',
                                 f'{img_id}.xml')
             tree = ET.parse(xml_path)
@@ -50,7 +50,7 @@ class XMLDataset(CustomDataset):
                 height = int(size.find('height').text)
             else:
                 img_path = osp.join(self.img_prefix, 'JPEGImages',
-                                    '{}.jpg'.format(img_id))
+                                    '{}.png'.format(img_id))
                 img = Image.open(img_path)
                 width, height = img.size
             data_infos.append(
@@ -128,13 +128,13 @@ class XMLDataset(CustomDataset):
                 labels.append(label)
         if not bboxes:
             bboxes = np.zeros((0, 4))
-            labels = np.zeros((0, ))
+            labels = np.zeros((0,))
         else:
             bboxes = np.array(bboxes, ndmin=2) - 1
             labels = np.array(labels)
         if not bboxes_ignore:
             bboxes_ignore = np.zeros((0, 4))
-            labels_ignore = np.zeros((0, ))
+            labels_ignore = np.zeros((0,))
         else:
             bboxes_ignore = np.array(bboxes_ignore, ndmin=2) - 1
             labels_ignore = np.array(labels_ignore)

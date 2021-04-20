@@ -89,13 +89,26 @@ def cityscapes_classes():
     ]
 
 
+def dota_classes():
+    return ['plane', 'ship', 'storage-tank', 'baseball-diamond', 'tennis-court', 'basketball-court',
+            'ground-track-field',
+            'harbor', 'bridge', 'large-vehicle', 'small-vehicle', 'helicopter', 'roundabout', 'soccer-ball-field',
+            'swimming-pool', 'container-crane']
+
+
+def vedai_classes():
+    return ['car', 'track', 'tractor', 'camping car', 'motocycle', 'bus', 'van', 'other', 'pick up', 'boat', 'plane']
+
+
 dataset_aliases = {
     'voc': ['voc', 'pascal_voc', 'voc07', 'voc12'],
     'imagenet_det': ['det', 'imagenet_det', 'ilsvrc_det'],
     'imagenet_vid': ['vid', 'imagenet_vid', 'ilsvrc_vid'],
     'coco': ['coco', 'mscoco', 'ms_coco'],
     'wider_face': ['WIDERFaceDataset', 'wider_face', 'WIDERFace'],
-    'cityscapes': ['cityscapes']
+    'cityscapes': ['cityscapes'],
+    'vedai': ['vedai', 'VEDAI'],
+    'dota': ['dota', 'DOTA']
 }
 
 
