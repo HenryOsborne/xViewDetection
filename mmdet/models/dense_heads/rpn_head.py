@@ -176,8 +176,8 @@ class RPNHead(RPNTestMixin, AnchorHead):
                     batch_size,
                     scores.size(1),
                 ),
-                                idx,
-                                dtype=torch.long))
+                    idx,
+                    dtype=torch.long))
 
         batch_mlvl_scores = torch.cat(mlvl_scores, dim=1)
         batch_mlvl_anchors = torch.cat(mlvl_valid_anchors, dim=1)
@@ -199,19 +199,19 @@ class RPNHead(RPNTestMixin, AnchorHead):
         if 'max_num' in cfg:
             if 'max_per_img' in cfg:
                 assert cfg.max_num == cfg.max_per_img, f'You ' \
-                    f'set max_num and ' \
-                    f'max_per_img at the same time, but get {cfg.max_num} ' \
-                    f'and {cfg.max_per_img} respectively' \
-                    'Please delete max_num which will be deprecated.'
+                                                       f'set max_num and ' \
+                                                       f'max_per_img at the same time, but get {cfg.max_num} ' \
+                                                       f'and {cfg.max_per_img} respectively' \
+                                                       'Please delete max_num which will be deprecated.'
             else:
                 cfg.max_per_img = cfg.max_num
         if 'nms_thr' in cfg:
             assert cfg.nms.iou_threshold == cfg.nms_thr, f'You set' \
-                f' iou_threshold in nms and ' \
-                f'nms_thr at the same time, but get' \
-                f' {cfg.nms.iou_threshold} and {cfg.nms_thr}' \
-                f' respectively. Please delete the nms_thr ' \
-                f'which will be deprecated.'
+                                                         f' iou_threshold in nms and ' \
+                                                         f'nms_thr at the same time, but get' \
+                                                         f' {cfg.nms.iou_threshold} and {cfg.nms_thr}' \
+                                                         f' respectively. Please delete the nms_thr ' \
+                                                         f'which will be deprecated.'
 
         result_list = []
         for (mlvl_proposals, mlvl_scores,

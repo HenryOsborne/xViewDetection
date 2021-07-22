@@ -211,7 +211,7 @@ class SparseRoIHead(CascadeRoIHead):
                 imgs_whwh=imgs_whwh)
             for key, value in single_stage_loss.items():
                 all_stage_loss[f'stage{stage}_{key}'] = value * \
-                                    self.stage_loss_weights[stage]
+                                                        self.stage_loss_weights[stage]
             object_feats = bbox_results['object_feats']
 
         return all_stage_loss
@@ -273,7 +273,7 @@ class SparseRoIHead(CascadeRoIHead):
             cls_score_per_img = cls_score[img_id]
             scores_per_img, topk_indices = cls_score_per_img.flatten(
                 0, 1).topk(
-                    self.test_cfg.max_per_img, sorted=False)
+                self.test_cfg.max_per_img, sorted=False)
             labels_per_img = topk_indices % num_classes
             bbox_pred_per_img = proposal_list[img_id][topk_indices //
                                                       num_classes]

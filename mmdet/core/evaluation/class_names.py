@@ -100,6 +100,10 @@ def vedai_classes():
     return ['car', 'track', 'tractor', 'camping car', 'motocycle', 'bus', 'van', 'other', 'pick up', 'boat', 'plane']
 
 
+def xview_classes():
+    return ['root']
+
+
 dataset_aliases = {
     'voc': ['voc', 'pascal_voc', 'voc07', 'voc12'],
     'imagenet_det': ['det', 'imagenet_det', 'ilsvrc_det'],
@@ -108,7 +112,8 @@ dataset_aliases = {
     'wider_face': ['WIDERFaceDataset', 'wider_face', 'WIDERFace'],
     'cityscapes': ['cityscapes'],
     'vedai': ['vedai', 'VEDAI'],
-    'dota': ['dota', 'DOTA']
+    'dota': ['dota', 'DOTA'],
+    'xview': ['xview']
 }
 
 

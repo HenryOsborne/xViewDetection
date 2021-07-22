@@ -28,6 +28,11 @@ from .two_stage import TwoStageDetector
 from .vfnet import VFNet
 from .yolact import YOLACT
 from .yolo import YOLOV3
+from .local_libra import Local_Libra
+from .other_local_twoStageDetector import Other_Local_TwoStageDetector
+from .local_baseline_faster import FasterRCNN_Local
+from .sparse_local import SparseRCNN_Local
+from .dynamic_local import Dynamic_Local
 
 __all__ = [
     'ATSS', 'BaseDetector', 'SingleStageDetector',
@@ -36,5 +41,6 @@ __all__ = [
     'RetinaNet', 'FCOS', 'GridRCNN', 'MaskScoringRCNN', 'RepPointsDetector',
     'FOVEA', 'FSAF', 'NASFCOS', 'PointRend', 'GFL', 'CornerNet', 'PAA',
     'YOLOV3', 'YOLACT', 'VFNet', 'DETR', 'TridentFasterRCNN', 'SparseRCNN',
-    'SCNet'
+    'SCNet', 'Local_Libra', 'Other_Local_TwoStageDetector', 'FasterRCNN_Local',
+    'SparseRCNN_Local', 'Dynamic_Local'
 ]
