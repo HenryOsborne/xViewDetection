@@ -1,6 +1,6 @@
 # model settings
 model = dict(
-    type='Dynamic_Local',
+    type='FasterRCNN',
     pretrained='torchvision://resnet50',
     backbone=dict(
         type='ResNet',
@@ -13,21 +13,44 @@ model = dict(
         type='FPN',
         in_channels=[256, 512, 1024, 2048],
         out_channels=256,
-        num_outs=5),
+        num_outs=5
+    ),
     rpn_head=dict(
-        type='RPNHead',
+        type='GARPNHead',
         in_channels=256,
         feat_channels=256,
-        anchor_generator=dict(
+        approx_anchor_generator=dict(
             type='AnchorGenerator',
-            scales=[8],
+            octave_base_scale=4,
+            scales_per_octave=3,
             ratios=[0.5, 1.0, 2.0],
             strides=[4, 8, 16, 32, 64]),
+        square_anchor_generator=dict(
+            type='AnchorGenerator',
+            ratios=[1.0],
+            scales=[4],
+            strides=[4, 8, 16, 32, 64]),
+        anchor_coder=dict(
+            type='DeltaXYWHBBoxCoder',
+            target_means=[.0, .0, .0, .0],
+            target_stds=[0.07, 0.07, 0.14, 0.14]),
+        bbox_coder=dict(
+            type='DeltaXYWHBBoxCoder',
+            target_means=[.0, .0, .0, .0],
+            target_stds=[0.07, 0.07, 0.11, 0.11]),
+        loc_filter_thr=0.01,
+        loss_loc=dict(
+            type='FocalLoss',
+            use_sigmoid=True,
+            gamma=2.0,
+            alpha=0.25,
+            loss_weight=1.0),
+        loss_shape=dict(type='BoundedIoULoss', beta=0.2, loss_weight=1.0),
         loss_cls=dict(
             type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
-        loss_bbox=dict(type='SmoothL1Loss', beta=1.0 / 9.0, loss_weight=1.0)),
+        loss_bbox=dict(type='SmoothL1Loss', beta=1.0, loss_weight=1.0)),
     roi_head=dict(
-        type='DynamicRoIHead',
+        type='StandardRoIHead',
         bbox_roi_extractor=dict(
             type='SingleRoIExtractor',
             roi_layer=dict(type='RoIAlign', output_size=7, sampling_ratio=2),
@@ -42,10 +65,23 @@ model = dict(
             reg_class_agnostic=False,
             loss_cls=dict(
                 type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0),
-            loss_bbox=dict(type='SmoothL1Loss', loss_weight=1.0, beta=1.0)),
+            loss_bbox=dict(type='SmoothL1Loss', beta=1.0, loss_weight=1.0))
     ),
+    # model training and testing settings
     train_cfg=dict(
         rpn=dict(
+            ga_assigner=dict(
+                type='ApproxMaxIoUAssigner',
+                pos_iou_thr=0.7,
+                neg_iou_thr=0.3,
+                min_pos_iou=0.3,
+                ignore_iof_thr=-1),
+            ga_sampler=dict(
+                type='RandomSampler',
+                num=256,
+                pos_fraction=0.5,
+                neg_pos_ub=-1,
+                add_gt_as_proposals=False),
             assigner=dict(
                 type='MaxIoUAssigner',
                 pos_iou_thr=0.7,
@@ -58,13 +94,15 @@ model = dict(
                 pos_fraction=0.5,
                 neg_pos_ub=-1,
                 add_gt_as_proposals=False),
-            allowed_border=0,
+            allowed_border=-1,
             pos_weight=-1,
+            center_ratio=0.2,
+            ignore_ratio=0.5,
             debug=False),
         rpn_proposal=dict(
-            nms_pre=2000,
-            max_per_img=2000,
-            nms_post=2000,
+            nms_pre=10000,
+            nms_post=10000,
+            max_per_img=10000,
             nms=dict(type='nms', iou_threshold=0.7),
             min_bbox_size=0),
         rcnn=dict(
@@ -81,25 +119,25 @@ model = dict(
                 neg_pos_ub=-1,
                 add_gt_as_proposals=True),
             pos_weight=-1,
-            debug=False,
-            dynamic_rcnn=dict(
-                iou_topk=1000,
-                beta_topk=10,
-                update_iter_interval=100,
-                initial_iou=0.4,
-                initial_beta=1.0))),
+            debug=False)),
     test_cfg=dict(
         rpn=dict(
-            nms_pre=2000,
-            nms_post=2000,
-            max_per_img=2000,
+            nms_pre=10000,
+            nms_post=10000,
+            max_per_img=10000,
             nms=dict(type='nms', iou_threshold=0.7),
             min_bbox_size=0),
         rcnn=dict(
-            score_thr=0.3,
-            nms=dict(type='nms', iou_threshold=0.2),
-            max_per_img=2000)
-    ))
+            # score_thr=0.05, nms=dict(type='nms', iou_thr=0.2), max_per_img=3000)
+            # score_thr=0.05, nms=dict(type='soft_nms', iou_thr=0.15, min_score=0.3) , max_per_img=2000)
+            # score_thr=0.01, nms=dict(type='nms', iou_thr=0.1), max_per_img=2000)
+            score_thr=0.3, nms=dict(type='nms', iou_thr=0.2), max_per_img=10000)
+        # soft-nms is also supported for rcnn testing
+        # e.g., nms=dict(type='soft_nms', iou_thr=0.5, min_score=0.05)
+    )
+)
+
+# dataset settings
 dataset_type = 'XviewDataset'
 data_root = 'data/xview/'
 
@@ -109,7 +147,7 @@ train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations', with_bbox=True),
     # dict(type='Albu', transforms = [{"type": 'RandomRotate90'}]),#数据增强
-    dict(type='Resize', img_scale=(3000, 3000), keep_ratio=False),
+    dict(type='Resize', img_scale=(800, 800), keep_ratio=False),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='Pad', size_divisor=32),
@@ -120,7 +158,7 @@ test_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(
         type='MultiScaleFlipAug',
-        img_scale=(3000, 3000),
+        img_scale=(800, 800),
         flip=False,
         transforms=[
             dict(type='Resize', keep_ratio=False),
@@ -136,7 +174,7 @@ data = dict(
     workers_per_gpu=2,
     train=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/train_local.json',
+        ann_file=data_root + 'annotations/instances_train2017.json',
         img_prefix=data_root + 'images/',
         pipeline=train_pipeline),
     val=dict(
@@ -149,27 +187,31 @@ data = dict(
         ann_file=data_root + 'annotations/instances_val2017.json',
         img_prefix=data_root + 'images/',
         pipeline=test_pipeline))
-
-evaluation = dict(interval=51, metric='bbox')
+# optimizer
 optimizer = dict(type='SGD', lr=0.0025, momentum=0.9, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
+# learning policy
 lr_config = dict(
     policy='step',
     warmup='linear',
     warmup_iters=500,
     warmup_ratio=1.0 / 3,
     step=[45, 48])
-runner = dict(type='EpochBasedRunner', max_epochs=50)
 checkpoint_config = dict(interval=10)
-log_config = dict(interval=50, hooks=[
-    dict(type='TextLoggerHook'),
-    dict(type='TensorboardLoggerHook')
-])
-custom_hooks = [dict(type='NumClassCheckHook')]
+# yapf:disable
+log_config = dict(
+    interval=50,
+    hooks=[
+        dict(type='TextLoggerHook'),
+        dict(type='TensorboardLoggerHook')
+    ])
+# yapf:enable
+# runtime settings
+evaluation = dict(interval=51, metric='bbox')
+runner = dict(type='EpochBasedRunner', max_epochs=50)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
+work_dir = './work_dirs/ga_global'
 load_from = None
 resume_from = None
 workflow = [('train', 1)]
-work_dir = './work_dirs/dynamic_local'
-gpu_ids = range(0, 1)

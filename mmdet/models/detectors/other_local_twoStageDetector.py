@@ -9,6 +9,8 @@ from .test_mixins import BBoxTestMixin, MaskTestMixin, RPNTestMixin
 import numpy as np
 from torchvision import transforms
 from torch.autograd import Variable
+from mmdet.core.visualization import imshow_det_bboxes
+import mmcv
 
 
 @DETECTORS.register_module
@@ -101,30 +103,38 @@ class Other_Local_TwoStageDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
     def forward_dummy(self, img):
         outs = ()
         # backbone
-        x = self.extract_feat(img)
-        # rpn
-        if self.with_rpn:
-            rpn_outs = self.rpn_head(x)
-            outs = outs + (rpn_outs,)
-        proposals = torch.randn(1000, 4).cuda()
-        # bbox head
-        rois = bbox2roi([proposals])
-        if self.with_bbox:
-            bbox_feats = self.bbox_roi_extractor(
-                x[:self.bbox_roi_extractor.num_inputs], rois)
-            if self.with_shared_head:
-                bbox_feats = self.shared_head(bbox_feats)
-            cls_score, bbox_pred = self.bbox_head(bbox_feats)
-            outs = outs + (cls_score, bbox_pred)
-        # mask head
-        if self.with_mask:
-            mask_rois = rois[:100]
-            mask_feats = self.mask_roi_extractor(
-                x[:self.mask_roi_extractor.num_inputs], mask_rois)
-            if self.with_shared_head:
-                mask_feats = self.shared_head(mask_feats)
-            mask_pred = self.mask_head(mask_feats)
-            outs = outs + (mask_pred,)
+
+        patches, coordinates, templates, sizes, ratios = \
+            self.global_to_patch(img, self.p_size)
+
+        for i in range(1):
+            input_patch = patches[0][0]
+            input_patch = input_patch.unsqueeze(0)
+
+            x = self.extract_feat(input_patch)
+            # rpn
+            if self.with_rpn:
+                rpn_outs = self.rpn_head(x)
+                outs = outs + (rpn_outs,)
+            proposals = torch.randn(1000, 4).cuda()
+            # bbox head
+            rois = bbox2roi([proposals])
+            if self.with_bbox:
+                bbox_feats = self.bbox_roi_extractor(
+                    x[:self.bbox_roi_extractor.num_inputs], rois)
+                if self.with_shared_head:
+                    bbox_feats = self.shared_head(bbox_feats)
+                cls_score, bbox_pred = self.bbox_head(bbox_feats)
+                outs = outs + (cls_score, bbox_pred)
+            # mask head
+            if self.with_mask:
+                mask_rois = rois[:100]
+                mask_feats = self.mask_roi_extractor(
+                    x[:self.mask_roi_extractor.num_inputs], mask_rois)
+                if self.with_shared_head:
+                    mask_feats = self.shared_head(mask_feats)
+                mask_pred = self.mask_head(mask_feats)
+                outs = outs + (mask_pred,)
         return outs
 
     def get_patch_info(self, shape, p_size):
@@ -574,3 +584,72 @@ class Other_Local_TwoStageDetector(BaseDetector, RPNTestMixin, BBoxTestMixin,
             return bbox_results, segm_results
         else:
             return bbox_results
+
+    def show_result(self,
+                    img,
+                    result,
+                    score_thr=0.3,
+                    bbox_color=(72, 101, 241),
+                    text_color=(72, 101, 241),
+                    mask_color=None,
+                    thickness=2,
+                    font_size=13,
+                    win_name='',
+                    show=False,
+                    wait_time=0,
+                    out_file=None):
+        img = mmcv.imread(img)
+        img = img.copy()
+        if isinstance(result, tuple):
+            bbox_result, segm_result = result
+            if isinstance(segm_result, tuple):
+                segm_result = segm_result[0]  # ms rcnn
+        else:
+            bbox_result, segm_result = result, None
+        ############################
+        width, height = img.shape[1], img.shape[0]
+
+        bbox_result[:, 0] = bbox_result[:, 0] * (width / 3000)
+        bbox_result[:, 1] = bbox_result[:, 1] * (height / 3000)
+        bbox_result[:, 2] = bbox_result[:, 2] * (width / 3000)
+        bbox_result[:, 3] = bbox_result[:, 3] * (height / 3000)
+
+        bbox_result = [bbox_result]
+        ############################
+        bboxes = np.vstack(bbox_result)
+        labels = [
+            np.full(bbox.shape[0], i, dtype=np.int32)
+            for i, bbox in enumerate(bbox_result)
+        ]
+        labels = np.concatenate(labels)
+        # draw segmentation masks
+        segms = None
+        if segm_result is not None and len(labels) > 0:  # non empty
+            segms = mmcv.concat_list(segm_result)
+            if isinstance(segms[0], torch.Tensor):
+                segms = torch.stack(segms, dim=0).detach().cpu().numpy()
+            else:
+                segms = np.stack(segms, axis=0)
+        # if out_file specified, do not show image in window
+        if out_file is not None:
+            show = False
+        # draw bounding boxes
+        img = imshow_det_bboxes(
+            img,
+            bboxes,
+            labels,
+            segms,
+            class_names=self.CLASSES,
+            score_thr=score_thr,
+            bbox_color=bbox_color,
+            text_color=text_color,
+            mask_color=mask_color,
+            thickness=thickness,
+            font_size=font_size,
+            win_name=win_name,
+            show=show,
+            wait_time=wait_time,
+            out_file=out_file)
+
+        if not (show or out_file):
+            return img

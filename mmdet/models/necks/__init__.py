@@ -10,8 +10,9 @@ from .pafpn import PAFPN
 from .rfp import RFP
 from .yolo_neck import YOLOV3Neck
 from .glnet_fpn import GLNET_fpn
+from .gl_fpn_global import GLFpnGlobal
 
 __all__ = [
     'FPN', 'BFP', 'ChannelMapper', 'HRFPN', 'NASFPN', 'FPN_CARAFE', 'PAFPN',
-    'NASFCOS_FPN', 'RFP', 'YOLOV3Neck', 'FPG', 'GLNET_fpn'
+    'NASFCOS_FPN', 'RFP', 'YOLOV3Neck', 'FPG', 'GLNET_fpn', 'GLFpnGlobal'
 ]

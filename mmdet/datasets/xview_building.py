@@ -16,9 +16,8 @@ from .custom import CustomDataset
 
 
 @DATASETS.register_module()
-class XviewDataset(CustomDataset):
-
-    CLASSES = ('root',)
+class XviewDatasetBuilding(CustomDataset):
+    CLASSES = ('building',)
 
     def load_annotations(self, ann_file):
         """Load annotation from COCO style annotation file.

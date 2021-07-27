@@ -1,50 +1,47 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
-# from torch.autograd import Variable
 import numpy as np
-from pdb import set_trace as bp
 from ..builder import NECKS
 from .. import builder
-from ..backbones.resnet import ResNet
 
 
 class fpn_module_global(nn.Module):
     def __init__(self, ):
         super(fpn_module_global, self).__init__()
         self._up_kwargs = {'mode': 'bilinear', 'align_corners': True}
-        # self._up_kwargs = {'mode': 'bilinear'}
         # Top layer
-        self.toplayer = nn.Conv2d(2048, 256, kernel_size=1, stride=1, padding=0)  # Reduce channels
+        self.toplayer = nn.Conv2d(2048, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))  # Reduce channels
         # Lateral layers
-        self.latlayer1 = nn.Conv2d(1024, 256, kernel_size=1, stride=1, padding=0)
-        self.latlayer2 = nn.Conv2d(512, 256, kernel_size=1, stride=1, padding=0)
-        self.latlayer3 = nn.Conv2d(256, 256, kernel_size=1, stride=1, padding=0)
+        self.latlayer1 = nn.Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
+        self.latlayer2 = nn.Conv2d(512, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
+        self.latlayer3 = nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
         # Smooth layers
-        self.smooth1_1 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
-        self.smooth2_1 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
-        self.smooth3_1 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
-        self.smooth4_1 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
-        self.smooth1_2 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
-        self.smooth2_2 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
-        self.smooth3_2 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
-        self.smooth4_2 = nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1)
+        self.smooth1_1 = nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.smooth2_1 = nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.smooth3_1 = nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.smooth4_1 = nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.smooth1_2 = nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.smooth2_2 = nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.smooth3_2 = nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.smooth4_2 = nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
 
-        self.toplayer_ext = nn.Conv2d(2048 * 2, 256, kernel_size=1, stride=1, padding=0)  # Reduce channels
+        self.toplayer_ext = nn.Conv2d(2048 * 2, 256, kernel_size=(1, 1), stride=(1, 1),
+                                      padding=(0, 0))  # Reduce channels
         # Lateral layers
-        self.latlayer1_ext = nn.Conv2d(1024 * 2, 256, kernel_size=1, stride=1, padding=0)
-        self.latlayer2_ext = nn.Conv2d(512 * 2, 256, kernel_size=1, stride=1, padding=0)
-        self.latlayer3_ext = nn.Conv2d(256 * 2, 256, kernel_size=1, stride=1, padding=0)
+        self.latlayer1_ext = nn.Conv2d(1024 * 2, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
+        self.latlayer2_ext = nn.Conv2d(512 * 2, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
+        self.latlayer3_ext = nn.Conv2d(256 * 2, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
         # Smooth layers
-        self.smooth1_1_ext = nn.Conv2d(256 * 2, 256, kernel_size=3, stride=1, padding=1)
-        self.smooth2_1_ext = nn.Conv2d(256 * 2, 256, kernel_size=3, stride=1, padding=1)
-        self.smooth3_1_ext = nn.Conv2d(256 * 2, 256, kernel_size=3, stride=1, padding=1)
-        self.smooth4_1_ext = nn.Conv2d(256 * 2, 256, kernel_size=3, stride=1, padding=1)
-        self.smooth1_2_ext = nn.Conv2d(256 * 2, 256, kernel_size=3, stride=1, padding=1)
-        self.smooth2_2_ext = nn.Conv2d(256 * 2, 256, kernel_size=3, stride=1, padding=1)
-        self.smooth3_2_ext = nn.Conv2d(256 * 2, 256, kernel_size=3, stride=1, padding=1)
-        self.smooth4_2_ext = nn.Conv2d(256 * 2, 256, kernel_size=3, stride=1, padding=1)
-        # self.smooth = nn.Conv2d(128 * 4 * 2, 128 * 4, kernel_size=3, stride=1, padding=1)
+        self.smooth1_1_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.smooth2_1_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.smooth3_1_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.smooth4_1_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.smooth1_2_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.smooth2_2_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.smooth3_2_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.smooth4_2_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        # self.smooth = nn.Conv2d(128 * 4 * 2, 128 * 4, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
 
     def _concatenate(self, p5, p4, p3, p2):
         _, _, H, W = p2.size()
@@ -132,44 +129,49 @@ class fpn_module_local(nn.Module):
         # Top layer
         self.fold = 2
         self.local_flod = 1
-        self.toplayer = nn.Conv2d(2048 * self.fold, 256, kernel_size=1, stride=1, padding=0)  # Reduce channels
+        self.toplayer = nn.Conv2d(2048 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1),
+                                  padding=(0, 0))  # Reduce channels
         # Lateral layers [C]
-        self.latlayer1 = nn.Conv2d(1024 * self.fold, 256, kernel_size=1, stride=1, padding=0)
-        self.latlayer2 = nn.Conv2d(512 * self.fold, 256, kernel_size=1, stride=1, padding=0)
-        self.latlayer3 = nn.Conv2d(256 * self.fold, 256, kernel_size=1, stride=1, padding=0)
+        self.latlayer1 = nn.Conv2d(1024 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
+        self.latlayer2 = nn.Conv2d(512 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
+        self.latlayer3 = nn.Conv2d(256 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
         # Smooth layers
         # ps0
-        self.smooth1_1 = nn.Conv2d(256 * self.fold, 256, kernel_size=3, stride=1, padding=1)
-        self.smooth2_1 = nn.Conv2d(256 * self.fold, 256, kernel_size=3, stride=1, padding=1)
-        self.smooth3_1 = nn.Conv2d(256 * self.fold, 256, kernel_size=3, stride=1, padding=1)
-        self.smooth4_1 = nn.Conv2d(256 * self.fold, 256, kernel_size=3, stride=1, padding=1)
+        self.smooth1_1 = nn.Conv2d(256 * self.fold, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.smooth2_1 = nn.Conv2d(256 * self.fold, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.smooth3_1 = nn.Conv2d(256 * self.fold, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.smooth4_1 = nn.Conv2d(256 * self.fold, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
         # ps1
-        self.smooth1_2 = nn.Conv2d(256 * self.fold, 256, kernel_size=3, stride=1, padding=1)  # 128
-        self.smooth2_2 = nn.Conv2d(256 * self.fold, 256, kernel_size=3, stride=1, padding=1)  # 128
-        self.smooth3_2 = nn.Conv2d(256 * self.fold, 256, kernel_size=3, stride=1, padding=1)  # 128
-        self.smooth4_2 = nn.Conv2d(256 * self.fold, 256, kernel_size=3, stride=1, padding=1)  # 128
+        self.smooth1_2 = nn.Conv2d(256 * self.fold, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))  # 128
+        self.smooth2_2 = nn.Conv2d(256 * self.fold, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))  # 128
+        self.smooth3_2 = nn.Conv2d(256 * self.fold, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))  # 128
+        self.smooth4_2 = nn.Conv2d(256 * self.fold, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))  # 128
         # ps2 is concatenation
         # Classify layers
-        self.smooth = nn.Conv2d(128 * 4 * self.fold * 2, 128 * 4, kernel_size=3, stride=1, padding=1)
-        self.classify = nn.Conv2d(128 * 4, numClass, kernel_size=3, stride=1, padding=1)
+        self.smooth = nn.Conv2d(128 * 4 * self.fold * 2, 128 * 4, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.classify = nn.Conv2d(128 * 4, numClass, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
 
-        self.toplayer_local = nn.Conv2d(2048 * self.local_flod, 256, kernel_size=1, stride=1,
-                                        padding=0)  # Reduce channels
+        self.toplayer_local = nn.Conv2d(2048 * self.local_flod, 256, kernel_size=(1, 1), stride=(1, 1),
+                                        padding=(0, 0))  # Reduce channels
         # Lateral layers [C]
-        self.latlayer1_local = nn.Conv2d(1024 * self.local_flod, 256, kernel_size=1, stride=1, padding=0)
-        self.latlayer2_local = nn.Conv2d(512 * self.local_flod, 256, kernel_size=1, stride=1, padding=0)
-        self.latlayer3_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=1, stride=1, padding=0)
+        self.latlayer1_local = nn.Conv2d(1024 * self.local_flod, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
+        self.latlayer2_local = nn.Conv2d(512 * self.local_flod, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
+        self.latlayer3_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
         # Smooth layers
         # ps0
-        self.smooth1_1_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=3, stride=1, padding=1)
-        self.smooth2_1_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=3, stride=1, padding=1)
-        self.smooth3_1_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=3, stride=1, padding=1)
-        self.smooth4_1_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=3, stride=1, padding=1)
+        self.smooth1_1_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.smooth2_1_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.smooth3_1_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.smooth4_1_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
         # ps1
-        self.smooth1_2_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=3, stride=1, padding=1)  # 128
-        self.smooth2_2_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=3, stride=1, padding=1)  # 128
-        self.smooth3_2_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=3, stride=1, padding=1)  # 128
-        self.smooth4_2_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=3, stride=1, padding=1)  # 128
+        self.smooth1_2_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(3, 3), stride=(1, 1),
+                                         padding=(1, 1))  # 128
+        self.smooth2_2_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(3, 3), stride=(1, 1),
+                                         padding=(1, 1))  # 128
+        self.smooth3_2_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(3, 3), stride=(1, 1),
+                                         padding=(1, 1))  # 128
+        self.smooth4_2_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(3, 3), stride=(1, 1),
+                                         padding=(1, 1))  # 128
 
     def _concatenate(self, p5, p4, p3, p2):
         # print("p2.size().. " , p2.size())
@@ -316,68 +318,70 @@ class GLNET_fpn(nn.Module):
         self.fpn_global = fpn_module_global()
         self.fpn_local = fpn_module_local(numClass)
 
-        self.c2_g = None;
-        self.c3_g = None;
-        self.c4_g = None;
-        self.c5_g = None;
+        self.c2_g = None
+        self.c3_g = None
+        self.c4_g = None
+        self.c5_g = None
         self.output_g = None
-        self.ps0_g = None;
-        self.ps1_g = None;
-        self.ps2_g = None;
+        self.ps0_g = None
+        self.ps1_g = None
+        self.ps2_g = None
         self.ps3_g = None
 
-        self.c2_l = [];
-        self.c3_l = [];
-        self.c4_l = [];
-        self.c5_l = [];
-        self.ps00_l = [];
-        self.ps01_l = [];
-        self.ps02_l = [];
-        self.ps03_l = [];
-        self.ps10_l = [];
-        self.ps11_l = [];
-        self.ps12_l = [];
-        self.ps13_l = [];
-        self.ps20_l = [];
-        self.ps21_l = [];
-        self.ps22_l = [];
-        self.ps23_l = [];
-        self.ps0_l = None;
-        self.ps1_l = None;
+        self.c2_l = []
+        self.c3_l = []
+        self.c4_l = []
+        self.c5_l = []
+        self.ps00_l = []
+        self.ps01_l = []
+        self.ps02_l = []
+        self.ps03_l = []
+        self.ps10_l = []
+        self.ps11_l = []
+        self.ps12_l = []
+        self.ps13_l = []
+        self.ps20_l = []
+        self.ps21_l = []
+        self.ps22_l = []
+        self.ps23_l = []
+        self.ps0_l = None
+        self.ps1_l = None
         self.ps2_l = None
         self.ps3_l = []  # ; self.output_l = []
 
-        self.c2_b = None;
-        self.c3_b = None;
-        self.c4_b = None;
-        self.c5_b = None;
-        self.ps00_b = None;
-        self.ps01_b = None;
-        self.ps02_b = None;
-        self.ps03_b = None;
-        self.ps10_b = None;
-        self.ps11_b = None;
-        self.ps12_b = None;
-        self.ps13_b = None;
-        self.ps20_b = None;
-        self.ps21_b = None;
-        self.ps22_b = None;
-        self.ps23_b = None;
+        self.c2_b = None
+        self.c3_b = None
+        self.c4_b = None
+        self.c5_b = None
+        self.ps00_b = None
+        self.ps01_b = None
+        self.ps02_b = None
+        self.ps03_b = None
+        self.ps10_b = None
+        self.ps11_b = None
+        self.ps12_b = None
+        self.ps13_b = None
+        self.ps20_b = None
+        self.ps21_b = None
+        self.ps22_b = None
+        self.ps23_b = None
         self.ps3_b = []  # ; self.output_b = []
 
         self.patch_n = 0
 
         self.i_p = 0
 
-    def init_weights(self):
-        '''
+    def init_weights(self, mode):
+        """
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 #constant_init()
                 xavier_init(m, distribution='uniform')
-        '''
-        # self.resnet_global.init_weights('torchvision://resnet50')  # 'torchvision://resnet50'
-        self.resnet_local.init_weights('torchvision://resnet50')  # 'torchvision://resnet50'
+        """
+        if mode == 1:
+            self.resnet_global.init_weights('torchvision://resnet50')  # 'torchvision://resnet50'
+        elif mode == 2:
+            self.resnet_local.init_weights('torchvision://resnet50')  # 'torchvision://resnet50'
 
         ''' 
         state = self.state_dict()
@@ -401,63 +405,67 @@ class GLNET_fpn(nn.Module):
         # init fpn
 
         for m in self.fpn_global.children():
-            if hasattr(m, 'weight'): nn.init.normal_(m.weight, mean=0, std=0.01)
-            if hasattr(m, 'bias'): nn.init.constant_(m.bias, 0)
+            if hasattr(m, 'weight'):
+                nn.init.normal_(m.weight, mean=0, std=0.01)
+            if hasattr(m, 'bias'):
+                nn.init.constant_(m.bias, 0)
 
         for m in self.fpn_local.children():
-            if hasattr(m, 'weight'): nn.init.normal_(m.weight, mean=0, std=0.01)
-            if hasattr(m, 'bias'): nn.init.constant_(m.bias, 0)
+            if hasattr(m, 'weight'):
+                nn.init.normal_(m.weight, mean=0, std=0.01)
+            if hasattr(m, 'bias'):
+                nn.init.constant_(m.bias, 0)
 
     def clear_cache(self):
-        self.c2_g = None;
-        self.c3_g = None;
-        self.c4_g = None;
-        self.c5_g = None;
+        self.c2_g = None
+        self.c3_g = None
+        self.c4_g = None
+        self.c5_g = None
         self.output_g = None
-        self.ps0_g = None;
-        self.ps1_g = None;
-        self.ps2_g = None;
+        self.ps0_g = None
+        self.ps1_g = None
+        self.ps2_g = None
         self.ps3_g = None
 
-        self.c2_l = [];
-        self.c3_l = [];
-        self.c4_l = [];
-        self.c5_l = [];
-        self.ps00_l = [];
-        self.ps01_l = [];
-        self.ps02_l = [];
-        self.ps03_l = [];
-        self.ps10_l = [];
-        self.ps11_l = [];
-        self.ps12_l = [];
-        self.ps13_l = [];
-        self.ps20_l = [];
-        self.ps21_l = [];
-        self.ps22_l = [];
-        self.ps23_l = [];
-        self.ps0_l = None;
-        self.ps1_l = None;
+        self.c2_l = []
+        self.c3_l = []
+        self.c4_l = []
+        self.c5_l = []
+        self.ps00_l = []
+        self.ps01_l = []
+        self.ps02_l = []
+        self.ps03_l = []
+        self.ps10_l = []
+        self.ps11_l = []
+        self.ps12_l = []
+        self.ps13_l = []
+        self.ps20_l = []
+        self.ps21_l = []
+        self.ps22_l = []
+        self.ps23_l = []
+        self.ps0_l = None
+        self.ps1_l = None
         self.ps2_l = None
-        self.ps3_l = [];
+        self.ps3_l = []
         self.output_l = []
 
-        self.c2_b = None;
-        self.c3_b = None;
-        self.c4_b = None;
-        self.c5_b = None;
-        self.ps00_b = None;
-        self.ps01_b = None;
-        self.ps02_b = None;
-        self.ps03_b = None;
-        self.ps10_b = None;
-        self.ps11_b = None;
-        self.ps12_b = None;
-        self.ps13_b = None;
-        self.ps20_b = None;
-        self.ps21_b = None;
-        self.ps22_b = None;
-        self.ps23_b = None;
-        self.ps3_b = [];
+        self.c2_b = None
+        self.c3_b = None
+        self.c4_b = None
+        self.c5_b = None
+        self.ps00_b = None
+        self.ps01_b = None
+        self.ps02_b = None
+        self.ps03_b = None
+        self.ps10_b = None
+        self.ps11_b = None
+        self.ps12_b = None
+        self.ps13_b = None
+        self.ps20_b = None
+        self.ps21_b = None
+        self.ps22_b = None
+        self.ps23_b = None
+        self.ps3_b = []
         self.output_b = []
 
         self.patch_n = 0
@@ -486,9 +494,9 @@ class GLNET_fpn(nn.Module):
         return F.grid_sample(fm, grid)
 
     def _crop_global(self, f_global, top_lefts, ratio):
-        '''
+        """
         top_lefts: [(top, left)] * b
-        '''
+        """
         _, c, H, W = f_global.size()
         b = len(top_lefts)
         h, w = int(np.round(H * ratio[0])), int(np.round(W * ratio[1]))
@@ -507,11 +515,11 @@ class GLNET_fpn(nn.Module):
         return [crop]  # return as a list for easy to torch.cat
 
     def _merge_local(self, f_local, merge, f_global, top_lefts, oped, ratio, template):
-        '''
+        """
         merge feature maps from local patches, and finally to a whole image's feature map (on cuda)
         f_local: a sub_batch_size of patch's feature map
         oped: [start, end)
-        '''
+        """
         b, _, _, _ = f_local.size()
         _, c, H, W = f_global.size()  # match global feature size
         if merge is None:
@@ -533,11 +541,11 @@ class GLNET_fpn(nn.Module):
 
     def collect_local_fm(self, image_global, patches, ratio, top_lefts, oped, batch_size, global_model=None,
                          template=None, n_patch_all=None):
-        '''
+        """
         patches: 1 patch
         top_lefts: all top-left
         oped: [start, end)
-        '''
+        """
         with torch.no_grad():
             patches = patches.unsqueeze(0)
             if self.patch_n == 0:
@@ -591,43 +599,43 @@ class GLNET_fpn(nn.Module):
 
             if self.patch_n == 0:
                 # merged all patches into an image
-                self.c2_l.append(self.c2_b);
-                self.c3_l.append(self.c3_b);
-                self.c4_l.append(self.c4_b);
-                self.c5_l.append(self.c5_b);
-                self.ps00_l.append(self.ps00_b);
-                self.ps01_l.append(self.ps01_b);
-                self.ps02_l.append(self.ps02_b);
+                self.c2_l.append(self.c2_b)
+                self.c3_l.append(self.c3_b)
+                self.c4_l.append(self.c4_b)
+                self.c5_l.append(self.c5_b)
+                self.ps00_l.append(self.ps00_b)
+                self.ps01_l.append(self.ps01_b)
+                self.ps02_l.append(self.ps02_b)
                 self.ps03_l.append(self.ps03_b)
-                self.ps10_l.append(self.ps10_b);
-                self.ps11_l.append(self.ps11_b);
-                self.ps12_l.append(self.ps12_b);
+                self.ps10_l.append(self.ps10_b)
+                self.ps11_l.append(self.ps11_b)
+                self.ps12_l.append(self.ps12_b)
                 self.ps13_l.append(self.ps13_b)
-                self.ps20_l.append(self.ps20_b);
-                self.ps21_l.append(self.ps21_b);
-                self.ps22_l.append(self.ps22_b);
+                self.ps20_l.append(self.ps20_b)
+                self.ps21_l.append(self.ps21_b)
+                self.ps22_l.append(self.ps22_b)
                 self.ps23_l.append(self.ps23_b)
 
                 # collected all ps3 and output of patches as a (b) tensor, append into list
-                self.ps3_l.append(torch.cat(self.ps3_b, dim=0));  # a list of tensors
+                self.ps3_l.append(torch.cat(self.ps3_b, dim=0))  # a list of tensors
                 # self.output_l.append(torch.cat(self.output_b, dim=0)) # a list of 36, 7, h, w tensors
 
-                self.c2_b = None;
-                self.c3_b = None;
-                self.c4_b = None;
-                self.c5_b = None;
-                self.ps00_b = None;
-                self.ps01_b = None;
-                self.ps02_b = None;
-                self.ps03_b = None;
-                self.ps10_b = None;
-                self.ps11_b = None;
-                self.ps12_b = None;
-                self.ps13_b = None;
-                self.ps20_b = None;
-                self.ps21_b = None;
-                self.ps22_b = None;
-                self.ps23_b = None;
+                self.c2_b = None
+                self.c3_b = None
+                self.c4_b = None
+                self.c5_b = None
+                self.ps00_b = None
+                self.ps01_b = None
+                self.ps02_b = None
+                self.ps03_b = None
+                self.ps10_b = None
+                self.ps11_b = None
+                self.ps12_b = None
+                self.ps13_b = None
+                self.ps20_b = None
+                self.ps21_b = None
+                self.ps22_b = None
+                self.ps23_b = None
                 self.ps3_b = []  # ; self.output_b = []
             if len(self.c2_l) == batch_size:
                 self.c2_l = torch.cat(self.c2_l, dim=0)  # .cuda()
@@ -650,31 +658,22 @@ class GLNET_fpn(nn.Module):
                 self.ps1_l = [self.ps10_l, self.ps11_l, self.ps12_l, self.ps13_l]
                 self.ps2_l = [self.ps20_l, self.ps21_l, self.ps22_l, self.ps23_l]
 
-    # images_glb[i:i+1], patches_var, coordinates[i][j : j+self.sub_batch_size], ratios[i], mode=self.mode, n_patch=len(coordinates[i])
-
     def forward(self, image_global, patches, top_lefts, ratio, templates=None, mode=None, global_model=None,
                 n_patch=None, i_patch=None):
         if mode == 1:
             # train global model
             c2_g, c3_g, c4_g, c5_g = self.resnet_global.forward(image_global)
-
-            # c2_g, c3_g, c4_g, c5_g=image_global[0],image_global[1],image_global[2],image_global[3]
             feat = self.fpn_global.forward(c2_g, c3_g, c4_g, c5_g, mode=1)
-
             return feat
         elif mode == 2 or mode == 4:
-
             with torch.no_grad():
                 if self.patch_n == 0:
                     self.c2_g, self.c3_g, self.c4_g, self.c5_g = self.resnet_global.forward(image_global)
-
                     # # output, ps0, ps1, ps2, ps3  #self.output_g,
                     self.ps0_g, self.ps1_g, self.ps2_g = self.fpn_global.forward(self.c2_g, self.c3_g, self.c4_g,
                                                                                  self.c5_g)
-
                 self.patch_n += patches.size()[0]
                 self.patch_n %= n_patch
-
             c2_l, c3_l, c4_l, c5_l = self.resnet_local.forward(patches)
             # ps3 = [p5, p4, p3, p2]
             ps3_l = self.fpn_local.forward(c2_l, c3_l, c4_l, c5_l,
@@ -693,9 +692,7 @@ class GLNET_fpn(nn.Module):
                                            [self._crop_global(f, top_lefts, ratio) for f
                                             in self.ps2_g],
                                            mode=mode)
-
             p6 = F.max_pool2d(ps3_l[0], (1, 1), (2, 2))
-
             result = [ps3_l[3], ps3_l[2], ps3_l[1], ps3_l[0], p6]
             return result
 

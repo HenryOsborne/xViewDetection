@@ -33,6 +33,8 @@ from .other_local_twoStageDetector import Other_Local_TwoStageDetector
 from .local_baseline_faster import FasterRCNN_Local
 from .sparse_local import SparseRCNN_Local
 from .dynamic_local import Dynamic_Local
+from .gl_two_stage import GLTwoStage
+from .gl_faster_global import GLFasterRCNN
 
 __all__ = [
     'ATSS', 'BaseDetector', 'SingleStageDetector',
@@ -42,5 +44,5 @@ __all__ = [
     'FOVEA', 'FSAF', 'NASFCOS', 'PointRend', 'GFL', 'CornerNet', 'PAA',
     'YOLOV3', 'YOLACT', 'VFNet', 'DETR', 'TridentFasterRCNN', 'SparseRCNN',
     'SCNet', 'Local_Libra', 'Other_Local_TwoStageDetector', 'FasterRCNN_Local',
-    'SparseRCNN_Local', 'Dynamic_Local'
+    'SparseRCNN_Local', 'Dynamic_Local', 'GLFasterRCNN', 'GLTwoStage'
 ]

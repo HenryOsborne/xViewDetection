@@ -83,6 +83,7 @@ model = dict(
         #     min_bbox_size=0),
         rpn_proposal=dict(
             nms_pre=10000,
+            nms_post=10000,
             max_per_img=10000,
             nms=dict(type='nms', iou_threshold=0.7),
             min_bbox_size=0),
@@ -109,6 +110,7 @@ model = dict(
     test_cfg=dict(
         rpn=dict(
             nms_pre=10000,
+            nms_post=10000,
             max_per_img=10000,
             nms=dict(type='nms', iou_threshold=0.7),
             min_bbox_size=0),

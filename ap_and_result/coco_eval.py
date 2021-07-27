@@ -317,6 +317,7 @@ def coco_summarize(self, args):
 
 
 def evaluate(args, anns):
+    print('\n')
     cocoGt = COCO(args.val_path)
     cocoDt = cocoGt.loadRes(anns)
     cocoEval = COCOeval(cocoGt, cocoDt, iouType=args.eval)
@@ -375,7 +376,7 @@ def det(args):
     model.CLASSES = checkpoint['meta']['CLASSES']
     model = MMDataParallel(model, device_ids=[0])
 
-    outputs = single_gpu_test(model, data_loader)
+    outputs = single_gpu_test(model, data_loader, show=args.show, out_dir=args.outdir)
     anns = det2json(dataset, outputs, args.mode)
     mmcv.dump(anns, args.ResFile)
 
@@ -386,6 +387,7 @@ def set_param(self):
     p = self.params
 
     ########################################################################################
+    # 调用cocoeval时所需的参数
     p.maxDets = [100000]
     p.iouThrs = np.array([0.5])
     p.recThrs = np.linspace(.0, 1.00, int(np.round((1.00 - .0) / .01)) + 1, endpoint=True)
@@ -399,8 +401,9 @@ def set_param(self):
 def parse_args():
     parser = argparse.ArgumentParser(description='MMDet test detector')
 
-    parser.add_argument('--work_dir', default='work_dirs/sparse_global')
+    parser.add_argument('--work_dir', default='work_dirs/dynamic_local')
     parser.add_argument('--score', default=0.3, type=float)
+    parser.add_argument('--show', default=True, type=bool)
 
     parser.add_argument('--val_path', type=str, default='data/xview/annotations/instances_val2017.json')
     parser.add_argument('--eval', type=str, default='bbox', nargs='+',
@@ -422,6 +425,11 @@ def parse_args():
     args.config = os.path.join(args.work_dir, '{}.py'.format(bare_name))
     args.checkpoint = os.path.join(args.work_dir, 'epoch_50.pth')
     args.ResFile = os.path.join(args.work_dir, 'ResFile.json')
+    if args.show is True:
+        args.outdir = os.path.join(args.work_dir, 'out')
+        os.makedirs(args.outdir, exist_ok=True)
+    else:
+        args.outdir = None
 
     if 'LOCAL_RANK' not in os.environ:
         os.environ['LOCAL_RANK'] = str(args.local_rank)
@@ -431,7 +439,7 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
-    if not os.path.isfile(args.ResFile):
+    if args.show or not os.path.isfile(args.ResFile):
         anns = det(args)
         evaluate(args, anns)
     else:

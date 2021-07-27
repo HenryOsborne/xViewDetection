@@ -101,7 +101,7 @@ def vedai_classes():
 
 
 def xview_classes():
-    return ['root']
+    return ['building']
 
 
 dataset_aliases = {

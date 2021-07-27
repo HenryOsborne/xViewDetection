@@ -37,11 +37,7 @@ def single_gpu_test(model,
             assert len(imgs) == len(img_metas)
 
             for i, (img, img_meta) in enumerate(zip(imgs, img_metas)):
-                h, w, _ = img_meta['img_shape']
-                img_show = img[:h, :w, :]
-
-                ori_h, ori_w = img_meta['ori_shape'][:-1]
-                img_show = mmcv.imresize(img_show, (ori_w, ori_h))
+                img_show = mmcv.imread(img_meta['filename'])
 
                 if out_dir:
                     out_file = osp.join(out_dir, img_meta['ori_filename'])
@@ -50,7 +46,9 @@ def single_gpu_test(model,
 
                 model.module.show_result(
                     img_show,
-                    result[i],
+                    result[i].copy(),
+                    # in show_result function,need to modifily result,
+                    # for the propose of no change the result of detection
                     show=show,
                     out_file=out_file,
                     score_thr=show_score_thr)
@@ -120,7 +118,7 @@ def collect_results_cpu(result_part, size, tmpdir=None):
     if tmpdir is None:
         MAX_LEN = 512
         # 32 is whitespace
-        dir_tensor = torch.full((MAX_LEN, ),
+        dir_tensor = torch.full((MAX_LEN,),
                                 32,
                                 dtype=torch.uint8,
                                 device='cuda')
