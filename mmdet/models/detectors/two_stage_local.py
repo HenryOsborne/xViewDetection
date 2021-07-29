@@ -1,36 +1,77 @@
-from ..builder import DETECTORS
-from .two_stage import TwoStageDetector
 import torch
-import numpy as np
-from torch.autograd import Variable
-import random
 import torch.nn as nn
+
+# from mmdet.core import bbox2result, bbox2roi, build_assigner, build_sampler
+from ..builder import DETECTORS, build_backbone, build_head, build_neck
+from .base import BaseDetector
+from torch.autograd import Variable
+import numpy as np
+import random
 import mmcv
 from mmdet.core.visualization import imshow_det_bboxes
 
 
 @DETECTORS.register_module()
-class Dynamic_Local(TwoStageDetector):
+class TwoStageDetectorLocal(BaseDetector):
+    """Base class for two-stage detectors.
+
+    Two-stage detectors typically consisting of a region proposal network and a
+    task-specific regression head.
+    """
+
     def __init__(self,
                  backbone,
-                 rpn_head,
-                 roi_head,
-                 train_cfg,
-                 test_cfg,
                  neck=None,
+                 rpn_head=None,
+                 roi_head=None,
+                 train_cfg=None,
+                 test_cfg=None,
                  pretrained=None):
-        super(Dynamic_Local, self).__init__(
-            backbone=backbone,
-            neck=neck,
-            rpn_head=rpn_head,
-            roi_head=roi_head,
-            train_cfg=train_cfg,
-            test_cfg=test_cfg,
-            pretrained=pretrained)
+        super(TwoStageDetectorLocal, self).__init__()
+        self.backbone = build_backbone(backbone)
+
+        if neck is not None:
+            self.neck = build_neck(neck)
+
+        if rpn_head is not None:
+            rpn_train_cfg = train_cfg.rpn if train_cfg is not None else None
+            rpn_head_ = rpn_head.copy()
+            rpn_head_.update(train_cfg=rpn_train_cfg, test_cfg=test_cfg.rpn)
+            self.rpn_head = build_head(rpn_head_)
+
+        if roi_head is not None:
+            # update train and test cfg here for now
+            # TODO: refactor assigner & sampler
+            rcnn_train_cfg = train_cfg.rcnn if train_cfg is not None else None
+            roi_head.update(train_cfg=rcnn_train_cfg)
+            roi_head.update(test_cfg=test_cfg.rcnn)
+            self.roi_head = build_head(roi_head)
+
+        self.train_cfg = train_cfg
+        self.test_cfg = test_cfg
+
+        self.init_weights(pretrained=pretrained)
+
         self.p_size = (800, 800)
 
+    @property
+    def with_rpn(self):
+        """bool: whether the detector has RPN"""
+        return hasattr(self, 'rpn_head') and self.rpn_head is not None
+
+    @property
+    def with_roi_head(self):
+        """bool: whether the detector has a RoI head"""
+        return hasattr(self, 'roi_head') and self.roi_head is not None
+
     def init_weights(self, pretrained=None):
-        super(Dynamic_Local, self).init_weights(pretrained)
+        """Initialize the weights in detector.
+
+        Args:
+            pretrained (str, optional): Path to pre-trained weights.
+                Defaults to None.
+        """
+        super(TwoStageDetectorLocal, self).init_weights(pretrained)
         self.backbone.init_weights(pretrained=pretrained)
         if self.with_neck:
             if isinstance(self.neck, nn.Sequential):
@@ -55,7 +96,6 @@ class Dynamic_Local(TwoStageDetector):
 
     def forward_dummy(self, img):
         """Used for computing network flops.
-
         See `mmdetection/tools/analysis_tools/get_flops.py`
         """
         outs = ()
@@ -76,11 +116,11 @@ class Dynamic_Local(TwoStageDetector):
         return outs
 
     def get_patch_info(self, shape, p_size):
-        '''
+        """
         shape: origin image size, (x, y)
         p_size: patch size (square)
         return: n_x, n_y, step_x, step_y
-        '''
+        """
         x = shape[0]
         y = shape[1]
         n = m = 1
@@ -244,6 +284,16 @@ class Dynamic_Local(TwoStageDetector):
                 total_loss[k] = total_loss[k] / float(batch_size)
         return total_loss
 
+    def patch_to_global(self, bbox_result, i_patch):
+        n_x, n_y, step_x, step_y = self.get_patch_info((3000, 3000), self.p_size[0])
+
+        for i in range(bbox_result[0].shape[0]):
+            bbox_result[0][i][0] += int(i_patch % n_y) * step_y
+            bbox_result[0][i][2] += int(i_patch % n_y) * step_y
+            bbox_result[0][i][1] += int(i_patch / n_y) * step_x
+            bbox_result[0][i][3] += int(i_patch / n_y) * step_x
+        return bbox_result
+
     def forward_train(self,
                       img,
                       img_metas,
@@ -311,15 +361,23 @@ class Dynamic_Local(TwoStageDetector):
 
         return losses
 
-    def patch_to_global(self, bbox_result, i_patch):
-        n_x, n_y, step_x, step_y = self.get_patch_info((3000, 3000), self.p_size[0])
+    async def async_simple_test(self,
+                                img,
+                                img_meta,
+                                proposals=None,
+                                rescale=False):
+        """Async test without augmentation."""
+        assert self.with_bbox, 'Bbox head must be implemented.'
+        x = self.extract_feat(img)
 
-        for i in range(bbox_result[0].shape[0]):
-            bbox_result[0][i][0] += int(i_patch % n_y) * step_y
-            bbox_result[0][i][2] += int(i_patch % n_y) * step_y
-            bbox_result[0][i][1] += int(i_patch / n_y) * step_x
-            bbox_result[0][i][3] += int(i_patch / n_y) * step_x
-        return bbox_result
+        if proposals is None:
+            proposal_list = await self.rpn_head.async_simple_test_rpn(
+                x, img_meta)
+        else:
+            proposal_list = proposals
+
+        return await self.roi_head.async_simple_test(
+            x, proposal_list, img_meta, rescale=rescale)
 
     def simple_test(self, img, img_metas, proposals=None, rescale=False):
         """Test without augmentation."""
@@ -369,6 +427,17 @@ class Dynamic_Local(TwoStageDetector):
 
         return result
 
+    def aug_test(self, imgs, img_metas, rescale=False):
+        """Test with augmentations.
+
+        If rescale is False, then returned bboxes and masks will fit the scale
+        of imgs[0].
+        """
+        x = self.extract_feats(imgs)
+        proposal_list = self.rpn_head.aug_test_rpn(x, img_metas)
+        return self.roi_head.aug_test(
+            x, proposal_list, img_metas, rescale=rescale)
+
     def show_result(self,
                     img,
                     result,
@@ -390,7 +459,7 @@ class Dynamic_Local(TwoStageDetector):
                 segm_result = segm_result[0]  # ms rcnn
         else:
             bbox_result, segm_result = result, None
-        ############################
+        ########################################################
         width, height = img.shape[1], img.shape[0]
 
         bbox_result[:, 0] = bbox_result[:, 0] * (width / 3000)
@@ -399,7 +468,7 @@ class Dynamic_Local(TwoStageDetector):
         bbox_result[:, 3] = bbox_result[:, 3] * (height / 3000)
 
         bbox_result = [bbox_result]
-        ############################
+        ########################################################
         bboxes = np.vstack(bbox_result)
         labels = [
             np.full(bbox.shape[0], i, dtype=np.int32)

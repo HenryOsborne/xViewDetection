@@ -28,13 +28,15 @@ from .two_stage import TwoStageDetector
 from .vfnet import VFNet
 from .yolact import YOLACT
 from .yolo import YOLOV3
-from .local_libra import Local_Libra
+from .local_libra import LocalLibra
 from .other_local_twoStageDetector import Other_Local_TwoStageDetector
-from .local_baseline_faster import FasterRCNN_Local
-from .sparse_local import SparseRCNN_Local
-from .dynamic_local import Dynamic_Local
+from .local_faster import LocalFasterRCNN
+from .local_sparse import LocalSparseRCNN
+from .local_dynamic import LocalDynamic
 from .gl_two_stage import GLTwoStage
 from .gl_faster_global import GLFasterRCNN
+from .two_stage_local import TwoStageDetectorLocal
+from .local_cascade import LocalCascadeRCNN
 
 __all__ = [
     'ATSS', 'BaseDetector', 'SingleStageDetector',
@@ -43,6 +45,7 @@ __all__ = [
     'RetinaNet', 'FCOS', 'GridRCNN', 'MaskScoringRCNN', 'RepPointsDetector',
     'FOVEA', 'FSAF', 'NASFCOS', 'PointRend', 'GFL', 'CornerNet', 'PAA',
     'YOLOV3', 'YOLACT', 'VFNet', 'DETR', 'TridentFasterRCNN', 'SparseRCNN',
-    'SCNet', 'Local_Libra', 'Other_Local_TwoStageDetector', 'FasterRCNN_Local',
-    'SparseRCNN_Local', 'Dynamic_Local', 'GLFasterRCNN', 'GLTwoStage'
+    'SCNet', 'LocalLibra', 'Other_Local_TwoStageDetector', 'LocalFasterRCNN',
+    'LocalSparseRCNN', 'LocalDynamic', 'GLFasterRCNN', 'GLTwoStage', 'TwoStageDetectorLocal',
+    'LocalCascadeRCNN'
 ]

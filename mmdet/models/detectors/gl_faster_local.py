@@ -12,6 +12,8 @@ from mmdet.core.visualization import imshow_det_bboxes
 
 @DETECTORS.register_module
 class GLFasterRCNNLocal(GLTwoStage):
+    MODE = 2
+
     def __init__(self,
                  rpn_head,
                  roi_head,
@@ -27,7 +29,6 @@ class GLFasterRCNNLocal(GLTwoStage):
             test_cfg=test_cfg,
             pretrained=pretrained)
 
-        self.mode = 2
         self.p_size = (800, 800)
 
     def get_patch_info(self, shape, p_size):
@@ -251,7 +252,7 @@ class GLFasterRCNNLocal(GLTwoStage):
                 for m in self.neck:
                     m.init_weights()
             else:
-                self.neck.init_weights(self.mode)
+                self.neck.init_weights(self.MODE)
         if self.with_rpn:
             self.rpn_head.init_weights()
         if self.with_roi_head:
@@ -270,7 +271,7 @@ class GLFasterRCNNLocal(GLTwoStage):
         batch_size = 2
         feat_neck = self.neck(input_img, input_patch,
                               coordinates[0][i_patch: i_patch + 1], ratios[0], templates[0],
-                              mode=self.mode, n_patch=batch_size, i_patch=i_patch, )
+                              mode=self.MODE, n_patch=batch_size, i_patch=i_patch, )
         # rpn
         if self.with_rpn:
             rpn_outs = self.rpn_head(feat_neck)
@@ -344,7 +345,7 @@ class GLFasterRCNNLocal(GLTwoStage):
 
                     feat_neck = self.neck(input_img, input_patch,
                                           coordinates[0][i_patch: i_patch + 1], ratios[0], templates[0],
-                                          mode=self.mode, n_patch=batch_size, i_patch=i_patch, )
+                                          mode=self.MODE, n_patch=batch_size, i_patch=i_patch, )
 
                     ##########################################################################
                     if self.with_rpn:
@@ -401,7 +402,7 @@ class GLFasterRCNNLocal(GLTwoStage):
             input_patch = input_patch.unsqueeze(0)
             feat_neck = self.neck(input_img, input_patch,
                                   coordinates[0][i_patch: i_patch + 1], ratios[0], templates[0],
-                                  mode=self.mode, n_patch=1, i_patch=i_patch, )  # 在这里传入img
+                                  mode=self.MODE, n_patch=1, i_patch=i_patch, )  # 在这里传入img
 
             if proposals is None:
                 proposal_list = self.rpn_head.simple_test_rpn(feat_neck, img_metas)

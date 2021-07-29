@@ -3,7 +3,7 @@ from .two_stage_local import TwoStageDetectorLocal
 
 
 @DETECTORS.register_module
-class LocalLibra(TwoStageDetectorLocal):
+class LocalFasterRCNN(TwoStageDetectorLocal):
     def __init__(self,
                  backbone,
                  neck=None,
@@ -12,7 +12,7 @@ class LocalLibra(TwoStageDetectorLocal):
                  train_cfg=None,
                  test_cfg=None,
                  pretrained=None):
-        super(LocalLibra, self).__init__(
+        super(LocalFasterRCNN, self).__init__(
             backbone=backbone,
             neck=neck,
             rpn_head=rpn_head,

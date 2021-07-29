@@ -1,9 +1,9 @@
 from ..builder import DETECTORS
-from .cascade_rcnn import CascadeRCNN
+from .two_stage_local import TwoStageDetectorLocal
 
 
-@DETECTORS.register_module
-class Global_CascadeRCNN(CascadeRCNN):
+@DETECTORS.register_module()
+class LocalDynamic(TwoStageDetectorLocal):
     def __init__(self,
                  backbone,
                  neck=None,
@@ -12,7 +12,7 @@ class Global_CascadeRCNN(CascadeRCNN):
                  train_cfg=None,
                  test_cfg=None,
                  pretrained=None):
-        super(Global_CascadeRCNN, self).__init__(
+        super(LocalDynamic, self).__init__(
             backbone=backbone,
             neck=neck,
             rpn_head=rpn_head,

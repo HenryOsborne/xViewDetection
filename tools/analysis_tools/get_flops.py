@@ -13,12 +13,13 @@ except ImportError:
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector')
-    parser.add_argument('--config', help='train config file path', default='cfgs/ga_local.py')
+    parser.add_argument('--config', help='train config file path',
+                        default='configs/faster_rcnn/faster_rcnn_r50_fpn_1x_coco.py')
     parser.add_argument(
         '--shape',
         type=int,
         nargs='+',
-        default=[3000, 3000],
+        default=[1000, 1000],
         help='input image size')
     parser.add_argument(
         '--cfg-options',

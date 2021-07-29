@@ -174,6 +174,7 @@ def coco_accumulate(self, p=None):
     precision = -np.ones((T, R, K, A, M))  # -1 for the precision of absent categories
     recall = -np.ones((T, K, A, M))
     scores = -np.ones((T, R, K, A, M))
+    Pre = 0
 
     # create dictionary for future indexing
     _pe = self._paramsEval
@@ -223,6 +224,7 @@ def coco_accumulate(self, p=None):
                     nd = len(tp)
                     rc = tp / npig
                     pr = tp / (fp + tp + np.spacing(1))
+                    Pre = np.mean(pr)
                     q = np.zeros((R,))
                     ss = np.zeros((R,))
 
@@ -254,6 +256,7 @@ def coco_accumulate(self, p=None):
         'counts': [T, R, K, A, M],
         'date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
         'precision': precision,
+        'Pr': Pre,
         'recall': recall,
         'scores': scores,
     }
@@ -262,16 +265,26 @@ def coco_accumulate(self, p=None):
 
 
 def coco_summarize(self, args):
-    '''
+    """
     Compute and display summary metrics for evaluation results.
     Note this functin can *only* be applied on the default parameter setting
-    '''
+    """
 
     def _summarize(ap=1, iouThr=None, areaRng='all', maxDets=100000, write_handle=None):
         p = self.params
         iStr = ' {:<18} {} @[ IoU={:<9} | Score={:>4} | area={:>6s} | maxDets={:>3d} ] = {:0.3f}'
-        titleStr = 'Average Precision' if ap == 1 else 'Average Recall'
-        typeStr = '(AP)' if ap == 1 else '(AR)'
+        if ap == 1:
+            titleStr = 'Average Precision'
+        elif ap == 0:
+            titleStr = 'Average Recall'
+        elif ap == 2:
+            titleStr = 'Precision'
+        if ap == 1:
+            typeStr = '(AP)'
+        elif ap == 0:
+            typeStr = '(AR)'
+        elif ap == 2:
+            typeStr = '(PR)'
         iouStr = '{:0.2f}:{:0.2f}'.format(p.iouThrs[0], p.iouThrs[-1]) \
             if iouThr is None else '{:0.2f}'.format(iouThr)
 
@@ -285,28 +298,35 @@ def coco_summarize(self, args):
                 t = np.where(iouThr == p.iouThrs)[0]
                 s = s[t]
             s = s[:, :, :, aind, mind]
-        else:
+        elif ap == 0:
             # dimension of recall: [TxKxAxM]
             s = self.eval['recall']
             if iouThr is not None:
                 t = np.where(iouThr == p.iouThrs)[0]
                 s = s[t]
             s = s[:, :, aind, mind]
-        if len(s[s > -1]) == 0:
-            mean_s = -1
-        else:
-            mean_s = np.mean(s[s > -1])
+        elif ap == 2:
+            mean_s = self.eval['Pr']
+
+        if ap != 2:
+            if len(s[s > -1]) == 0:
+                mean_s = -1
+            else:
+                mean_s = np.mean(s[s > -1])
         print(iStr.format(titleStr, typeStr, iouStr, p.scoceThrs, areaRng, maxDets, mean_s))
         if write_handle is not None:
             write_handle.write(iStr.format(titleStr, typeStr, iouStr, p.scoceThrs, areaRng, maxDets, mean_s) + '\n')
         return mean_s
 
     def _summarizeDets(args):
-        stats = np.zeros((2,))
+        stats = np.zeros((3,))
         f = open(os.path.join(args.work_dir, 'result.txt'), 'a+')
+        bare_name = os.path.basename(args.work_dir)
         f.write(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '\n')
+        f.write('Model : {}'.format(bare_name) + '\n')
         stats[0] = _summarize(1, iouThr=.5, maxDets=self.params.maxDets[-1], write_handle=f)
         stats[1] = _summarize(0, iouThr=.5, maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[2] = _summarize(2, iouThr=.5, maxDets=self.params.maxDets[-1], write_handle=f)
         f.write('\n')
         f.close()
         print('Successfully Write Result File...')
@@ -317,7 +337,6 @@ def coco_summarize(self, args):
 
 
 def evaluate(args, anns):
-    print('\n')
     cocoGt = COCO(args.val_path)
     cocoDt = cocoGt.loadRes(anns)
     cocoEval = COCOeval(cocoGt, cocoDt, iouType=args.eval)
@@ -401,9 +420,9 @@ def set_param(self):
 def parse_args():
     parser = argparse.ArgumentParser(description='MMDet test detector')
 
-    parser.add_argument('--work_dir', default='work_dirs/dynamic_local')
+    parser.add_argument('--work_dir', default='work_dirs/faster_local')
     parser.add_argument('--score', default=0.3, type=float)
-    parser.add_argument('--show', default=True, type=bool)
+    parser.add_argument('--show', default=False, type=bool)
 
     parser.add_argument('--val_path', type=str, default='data/xview/annotations/instances_val2017.json')
     parser.add_argument('--eval', type=str, default='bbox', nargs='+',

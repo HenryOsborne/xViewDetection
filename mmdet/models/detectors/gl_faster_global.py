@@ -6,8 +6,8 @@ import torch.nn as nn
 
 @DETECTORS.register_module
 class GLFasterRCNN(GLTwoStage):
+    MODE = 1
     def __init__(self,
-                 backbone,
                  rpn_head,
                  roi_head,
                  train_cfg,
@@ -22,12 +22,11 @@ class GLFasterRCNN(GLTwoStage):
             test_cfg=test_cfg,
             pretrained=pretrained)
 
-        self.mode = 1
         self.p_size = (800, 800)
 
     def extract_feat(self, img):
         """Directly extract features from the backbone+neck."""
-        x = self.neck(img, None, None, None, mode=self.mode)
+        x = self.neck(img, None, None, None, mode=self.MODE)
         return x
 
     def init_weights(self, pretrained=None):
@@ -43,7 +42,7 @@ class GLFasterRCNN(GLTwoStage):
                 for m in self.neck:
                     m.init_weights()
             else:
-                self.neck.init_weights(self.mode)
+                self.neck.init_weights(self.MODE)
         if self.with_rpn:
             self.rpn_head.init_weights()
         if self.with_roi_head:
@@ -58,8 +57,8 @@ class GLFasterRCNN(GLTwoStage):
                       gt_masks=None,
                       proposals=None,
                       **kwargs):
-        if self.mode == 1:
-            x = self.neck(img, None, None, None, mode=self.mode)
+        if self.MODE == 1:
+            x = self.neck(img, None, None, None, mode=self.MODE)
         else:
             raise ValueError('In global mode,mode should be 1...')
 

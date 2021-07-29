@@ -165,6 +165,6 @@ runner = dict(type='EpochBasedRunner', max_epochs=50)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 work_dir = './work_dirs/gl_faster/mode2'
-load_from = './work_dirs/gl_faster/mode1/epoch50.pth'
+load_from = None
 resume_from = None
 workflow = [('train', 1)]
