@@ -99,7 +99,7 @@ class SparseRCNN(TwoStageDetector):
         # rpn
         num_imgs = len(img)
         dummy_img_metas = [
-            dict(img_shape=(800, 1333, 3)) for _ in range(num_imgs)
+            dict(img_shape=(800, 800, 3)) for _ in range(num_imgs)
         ]
         proposal_boxes, proposal_features, imgs_whwh = \
             self.rpn_head.simple_test_rpn(x, dummy_img_metas)

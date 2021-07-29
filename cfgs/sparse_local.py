@@ -1,7 +1,7 @@
 num_stages = 6
 num_proposals = 200
 model = dict(
-    type='SparseRCNN_Local',
+    type='LocalSparseRCNN',
     pretrained='torchvision://resnet50',
     backbone=dict(
         type='ResNet',

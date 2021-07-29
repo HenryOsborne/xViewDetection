@@ -13,6 +13,7 @@ import time
 import copy
 import numpy as np
 import datetime
+import shutil
 
 
 def computeIoU(self, imgId, catId):
@@ -323,13 +324,21 @@ def coco_summarize(self, args):
         f = open(os.path.join(args.work_dir, 'result.txt'), 'a+')
         bare_name = os.path.basename(args.work_dir)
         f.write(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '\n')
-        f.write('Model : {}'.format(bare_name) + '\n')
         stats[0] = _summarize(1, iouThr=.5, maxDets=self.params.maxDets[-1], write_handle=f)
         stats[1] = _summarize(0, iouThr=.5, maxDets=self.params.maxDets[-1], write_handle=f)
         stats[2] = _summarize(2, iouThr=.5, maxDets=self.params.maxDets[-1], write_handle=f)
         f.write('\n')
         f.close()
         print('Successfully Write Result File...')
+
+        # for batter stored result file,create a dir to stored result,and it can be upload to github
+        assert os.path.isfile(os.path.join(args.work_dir, 'result.txt'))
+        out_dir = 'result'
+        os.makedirs(out_dir, exist_ok=True)
+        out_file_name = os.path.join(out_dir, '{}.txt'.format(bare_name))
+        if os.path.isfile(out_file_name):
+            shutil.rmtree(out_file_name)
+        shutil.copy(os.path.join(args.work_dir, 'result.txt'), out_file_name)
         return stats
 
     summarize = _summarizeDets

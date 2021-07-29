@@ -1,6 +1,6 @@
 # model settings
 model = dict(
-    type="Local_Libra",
+    type="LocalLibra",
     pretrained='torchvision://resnet50',
     backbone=dict(
         type='ResNet',

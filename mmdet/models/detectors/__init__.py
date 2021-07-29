@@ -29,7 +29,6 @@ from .vfnet import VFNet
 from .yolact import YOLACT
 from .yolo import YOLOV3
 from .local_libra import LocalLibra
-from .other_local_twoStageDetector import Other_Local_TwoStageDetector
 from .local_faster import LocalFasterRCNN
 from .local_sparse import LocalSparseRCNN
 from .local_dynamic import LocalDynamic
@@ -45,7 +44,7 @@ __all__ = [
     'RetinaNet', 'FCOS', 'GridRCNN', 'MaskScoringRCNN', 'RepPointsDetector',
     'FOVEA', 'FSAF', 'NASFCOS', 'PointRend', 'GFL', 'CornerNet', 'PAA',
     'YOLOV3', 'YOLACT', 'VFNet', 'DETR', 'TridentFasterRCNN', 'SparseRCNN',
-    'SCNet', 'LocalLibra', 'Other_Local_TwoStageDetector', 'LocalFasterRCNN',
+    'SCNet', 'LocalLibra', 'LocalFasterRCNN',
     'LocalSparseRCNN', 'LocalDynamic', 'GLFasterRCNN', 'GLTwoStage', 'TwoStageDetectorLocal',
     'LocalCascadeRCNN'
 ]
