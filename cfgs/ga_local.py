@@ -2,6 +2,13 @@
 model = dict(
     type='LocalFasterRCNN',
     pretrained='torchvision://resnet50',
+    #####################################
+    # param for split global images,
+    # p_size : split size
+    # batch_size : seleted splited images for train
+    p_size=(800, 800),
+    batch_size=4,
+    #####################################
     backbone=dict(
         type='ResNet',
         depth=50,
@@ -80,7 +87,6 @@ model = dict(
                 pos_iou_thr=0.7,
                 neg_iou_thr=0.3,
                 min_pos_iou=0.3,
-                match_low_quality=True,
                 ignore_iof_thr=-1),
             sampler=dict(
                 type='RandomSampler',

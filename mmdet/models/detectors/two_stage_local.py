@@ -20,6 +20,8 @@ class TwoStageDetectorLocal(BaseDetector):
     """
 
     def __init__(self,
+                 p_size,
+                 batch_size,
                  backbone,
                  neck=None,
                  rpn_head=None,
@@ -52,7 +54,213 @@ class TwoStageDetectorLocal(BaseDetector):
 
         self.init_weights(pretrained=pretrained)
 
-        self.p_size = (800, 800)
+        self.p_size = p_size
+        self.batch_size = batch_size
+
+    def forward_train(self,
+                      img,
+                      img_metas,
+                      gt_bboxes,
+                      gt_labels,
+                      gt_bboxes_ignore=None,
+                      gt_masks=None,
+                      proposals=None,
+                      **kwargs):
+        patches, coordinates, templates, sizes, ratios = \
+            self.global_to_patch(img, self.p_size)  # patches,patch位置,？,img_size,p_size/img_size
+        bbox_patches, label_patches = \
+            self.label_to_patch(img, self.p_size, gt_bboxes, gt_labels, gt_masks)  # 将label切分
+
+        img_metas[0]['img_shape'] = (800, 800, 3)
+        img_metas[0]['pad_shape'] = (800, 800, 3)
+        img_metas[0]['scale_factor'] = 1.0
+
+        count_patch = 0
+        losses = dict()
+        batch_size = self.batch_size
+        while count_patch < batch_size:
+            try:
+                i_patch = random.randint(0, len(coordinates[0]) - 1)
+            except:
+                continue
+
+            if label_patches[i_patch].shape == torch.Size([0]) or bbox_patches[i_patch] is None or label_patches[
+                i_patch] is None:
+                continue
+
+            input_patch = patches[0][i_patch]
+            input_patch = input_patch.unsqueeze(0)
+
+            input_bbox = bbox_patches[i_patch]
+            input_bbox = [input_bbox]
+
+            input_label = label_patches[i_patch]
+            input_label = [input_label]
+
+            feat_neck = self.extract_feat(input_patch)
+            ##############################################################################
+            if self.with_rpn:
+                proposal_cfg = self.train_cfg.get('rpn_proposal',
+                                                  self.test_cfg.rpn)
+                rpn_losses, proposal_list = self.rpn_head.forward_train(
+                    feat_neck,
+                    img_metas,
+                    input_bbox,
+                    gt_labels=None,
+                    gt_bboxes_ignore=gt_bboxes_ignore,
+                    proposal_cfg=proposal_cfg)
+                losses = self.update_loss(losses, rpn_losses)
+            else:
+                proposal_list = proposals
+            ##############################################################################
+            roi_losses = self.roi_head.forward_train(feat_neck, img_metas, proposal_list,
+                                                     input_bbox, input_label,
+                                                     gt_bboxes_ignore, gt_masks,
+                                                     **kwargs)
+            losses = self.update_loss(losses, roi_losses)
+            ##############################################################################
+            count_patch += 1
+        losses = self.loss_mean(losses, batch_size)
+
+        return losses
+
+    def simple_test(self, img, img_metas, proposals=None, rescale=False):
+        """Test without augmentation."""
+        assert self.with_bbox, 'Bbox head must be implemented.'
+
+        img_metas[0]['img_shape'] = (800, 800, 3)
+        img_metas[0]['scale_factor'] = 1.0
+        img_metas[0]['pad_shape'] = (800, 800, 3)
+
+        patches, coordinates, templates, sizes, ratios = \
+            self.global_to_patch(img, self.p_size)  # patches,patch位置,？,img_size,p_size/img_size
+
+        i_patch = 0
+        result = []
+        return_rpn = False
+
+        for i in range(len(coordinates[0])):
+            input_patch = patches[0][i_patch]
+            input_patch = input_patch.unsqueeze(0)
+            feat_neck = self.extract_feat(input_patch)
+
+            if proposals is None:
+                proposal_list = self.rpn_head.simple_test_rpn(feat_neck, img_metas)
+            else:
+                proposal_list = proposals
+
+            if return_rpn:
+                gl_proposal = self.patch_to_global(proposal_list, i_patch)
+                if i_patch > 0:
+                    result[0] = np.concatenate([result[0], gl_proposal[0].cpu().numpy()])
+                else:
+                    result.extend([gl_proposal[0].cpu().numpy()])
+                i_patch += 1
+                continue
+
+            bbox_results = self.roi_head.simple_test(
+                feat_neck, proposal_list, img_metas, rescale=rescale
+            )
+
+            bbox_results = self.patch_to_global(bbox_results[0], i_patch)
+
+            if i_patch > 0:
+                result[0] = np.concatenate([result[0], bbox_results[0]])
+            else:
+                result.extend(bbox_results)
+            i_patch += 1
+
+        return result
+
+    def show_result(self,
+                    img,
+                    result,
+                    score_thr=0.3,
+                    bbox_color=(72, 101, 241),
+                    text_color=(72, 101, 241),
+                    mask_color=None,
+                    thickness=2,
+                    font_size=13,
+                    win_name='',
+                    show=False,
+                    wait_time=0,
+                    out_file=None):
+        img = mmcv.imread(img)
+        img = img.copy()
+        if isinstance(result, tuple):
+            bbox_result, segm_result = result
+            if isinstance(segm_result, tuple):
+                segm_result = segm_result[0]  # ms rcnn
+        else:
+            bbox_result, segm_result = result, None
+        ########################################################
+        width, height = img.shape[1], img.shape[0]
+
+        bbox_result[:, 0] = bbox_result[:, 0] * (width / 3000)
+        bbox_result[:, 1] = bbox_result[:, 1] * (height / 3000)
+        bbox_result[:, 2] = bbox_result[:, 2] * (width / 3000)
+        bbox_result[:, 3] = bbox_result[:, 3] * (height / 3000)
+
+        bbox_result = [bbox_result]
+        ########################################################
+        bboxes = np.vstack(bbox_result)
+        labels = [
+            np.full(bbox.shape[0], i, dtype=np.int32)
+            for i, bbox in enumerate(bbox_result)
+        ]
+        labels = np.concatenate(labels)
+        # draw segmentation masks
+        segms = None
+        if segm_result is not None and len(labels) > 0:  # non empty
+            segms = mmcv.concat_list(segm_result)
+            if isinstance(segms[0], torch.Tensor):
+                segms = torch.stack(segms, dim=0).detach().cpu().numpy()
+            else:
+                segms = np.stack(segms, axis=0)
+        # if out_file specified, do not show image in window
+        if out_file is not None:
+            show = False
+        # draw bounding boxes
+        img = imshow_det_bboxes(
+            img,
+            bboxes,
+            labels,
+            segms,
+            class_names=self.CLASSES,
+            score_thr=score_thr,
+            bbox_color=bbox_color,
+            text_color=text_color,
+            mask_color=mask_color,
+            thickness=thickness,
+            font_size=font_size,
+            win_name=win_name,
+            show=show,
+            wait_time=wait_time,
+            out_file=out_file)
+
+        if not (show or out_file):
+            return img
+
+    def forward_dummy(self, img):
+        """Used for computing network flops.
+        See `mmdetection/tools/analysis_tools/get_flops.py`
+        """
+        outs = ()
+        patches, coordinates, templates, sizes, ratios = \
+            self.global_to_patch(img, self.p_size)
+        # backbone
+        input_patch = patches[0][0]
+        input_patch = input_patch.unsqueeze(0)
+        x = self.extract_feat(input_patch)
+        # rpn
+        if self.with_rpn:
+            rpn_outs = self.rpn_head(x)
+            outs = outs + (rpn_outs,)
+        proposals = torch.randn(1000, 4).to(img.device)
+        # roi_head
+        roi_outs = self.roi_head.forward_dummy(x, proposals)
+        outs = outs + (roi_outs,)
+        return outs
 
     @property
     def with_rpn(self):
@@ -93,27 +301,6 @@ class TwoStageDetectorLocal(BaseDetector):
             x = self.neck([c2, c3, c4, c5])
             # x = self.neck(x)
         return x
-
-    def forward_dummy(self, img):
-        """Used for computing network flops.
-        See `mmdetection/tools/analysis_tools/get_flops.py`
-        """
-        outs = ()
-        patches, coordinates, templates, sizes, ratios = \
-            self.global_to_patch(img, self.p_size)
-        # backbone
-        input_patch = patches[0][0]
-        input_patch = input_patch.unsqueeze(0)
-        x = self.extract_feat(input_patch)
-        # rpn
-        if self.with_rpn:
-            rpn_outs = self.rpn_head(x)
-            outs = outs + (rpn_outs,)
-        proposals = torch.randn(1000, 4).to(img.device)
-        # roi_head
-        roi_outs = self.roi_head.forward_dummy(x, proposals)
-        outs = outs + (roi_outs,)
-        return outs
 
     def get_patch_info(self, shape, p_size):
         """
@@ -294,73 +481,6 @@ class TwoStageDetectorLocal(BaseDetector):
             bbox_result[0][i][3] += int(i_patch / n_y) * step_x
         return bbox_result
 
-    def forward_train(self,
-                      img,
-                      img_metas,
-                      gt_bboxes,
-                      gt_labels,
-                      gt_bboxes_ignore=None,
-                      gt_masks=None,
-                      proposals=None,
-                      **kwargs):
-        patches, coordinates, templates, sizes, ratios = \
-            self.global_to_patch(img, self.p_size)  # patches,patch位置,？,img_size,p_size/img_size
-        bbox_patches, label_patches = \
-            self.label_to_patch(img, self.p_size, gt_bboxes, gt_labels, gt_masks)  # 将label切分
-
-        img_metas[0]['img_shape'] = (800, 800, 3)
-        img_metas[0]['pad_shape'] = (800, 800, 3)
-        img_metas[0]['scale_factor'] = 1.0
-
-        count_patch = 0
-        losses = dict()
-        batch_size = 4
-        while count_patch < batch_size:
-            try:
-                i_patch = random.randint(0, len(coordinates[0]) - 1)
-            except:
-                continue
-
-            if label_patches[i_patch].shape == torch.Size([0]) or bbox_patches[i_patch] is None or label_patches[
-                i_patch] is None:
-                continue
-
-            input_patch = patches[0][i_patch]
-            input_patch = input_patch.unsqueeze(0)
-
-            input_bbox = bbox_patches[i_patch]
-            input_bbox = [input_bbox]
-
-            input_label = label_patches[i_patch]
-            input_label = [input_label]
-
-            feat_neck = self.extract_feat(input_patch)
-            ########################################################
-            if self.with_rpn:
-                proposal_cfg = self.train_cfg.get('rpn_proposal',
-                                                  self.test_cfg.rpn)
-                rpn_losses, proposal_list = self.rpn_head.forward_train(
-                    feat_neck,
-                    img_metas,
-                    input_bbox,
-                    gt_labels=None,
-                    gt_bboxes_ignore=gt_bboxes_ignore,
-                    proposal_cfg=proposal_cfg)
-                losses = self.update_loss(losses, rpn_losses)
-            else:
-                proposal_list = proposals
-            ########################################################
-            roi_losses = self.roi_head.forward_train(feat_neck, img_metas, proposal_list,
-                                                     input_bbox, input_label,
-                                                     gt_bboxes_ignore, gt_masks,
-                                                     **kwargs)
-            losses = self.update_loss(losses, roi_losses)
-            ########################################################
-            count_patch += 1
-        losses = self.loss_mean(losses, batch_size)
-
-        return losses
-
     async def async_simple_test(self,
                                 img,
                                 img_meta,
@@ -379,54 +499,6 @@ class TwoStageDetectorLocal(BaseDetector):
         return await self.roi_head.async_simple_test(
             x, proposal_list, img_meta, rescale=rescale)
 
-    def simple_test(self, img, img_metas, proposals=None, rescale=False):
-        """Test without augmentation."""
-        assert self.with_bbox, 'Bbox head must be implemented.'
-
-        img_metas[0]['img_shape'] = (800, 800, 3)
-        img_metas[0]['scale_factor'] = 1.0
-        img_metas[0]['pad_shape'] = (800, 800, 3)
-
-        patches, coordinates, templates, sizes, ratios = \
-            self.global_to_patch(img, self.p_size)  # patches,patch位置,？,img_size,p_size/img_size
-
-        i_patch = 0
-        result = []
-        return_rpn = False
-
-        for i in range(len(coordinates[0])):
-            input_patch = patches[0][i_patch]
-            input_patch = input_patch.unsqueeze(0)
-            feat_neck = self.extract_feat(input_patch)
-
-            if proposals is None:
-                proposal_list = self.rpn_head.simple_test_rpn(feat_neck, img_metas)
-            else:
-                proposal_list = proposals
-
-            if return_rpn:
-                gl_proposal = self.patch_to_global(proposal_list, i_patch)
-                if i_patch > 0:
-                    result[0] = np.concatenate([result[0], gl_proposal[0].cpu().numpy()])
-                else:
-                    result.extend([gl_proposal[0].cpu().numpy()])
-                i_patch += 1
-                continue
-
-            bbox_results = self.roi_head.simple_test(
-                feat_neck, proposal_list, img_metas, rescale=rescale
-            )
-
-            bbox_results = self.patch_to_global(bbox_results[0], i_patch)
-
-            if i_patch > 0:
-                result[0] = np.concatenate([result[0], bbox_results[0]])
-            else:
-                result.extend(bbox_results)
-            i_patch += 1
-
-        return result
-
     def aug_test(self, imgs, img_metas, rescale=False):
         """Test with augmentations.
 
@@ -437,72 +509,3 @@ class TwoStageDetectorLocal(BaseDetector):
         proposal_list = self.rpn_head.aug_test_rpn(x, img_metas)
         return self.roi_head.aug_test(
             x, proposal_list, img_metas, rescale=rescale)
-
-    def show_result(self,
-                    img,
-                    result,
-                    score_thr=0.3,
-                    bbox_color=(72, 101, 241),
-                    text_color=(72, 101, 241),
-                    mask_color=None,
-                    thickness=2,
-                    font_size=13,
-                    win_name='',
-                    show=False,
-                    wait_time=0,
-                    out_file=None):
-        img = mmcv.imread(img)
-        img = img.copy()
-        if isinstance(result, tuple):
-            bbox_result, segm_result = result
-            if isinstance(segm_result, tuple):
-                segm_result = segm_result[0]  # ms rcnn
-        else:
-            bbox_result, segm_result = result, None
-        ########################################################
-        width, height = img.shape[1], img.shape[0]
-
-        bbox_result[:, 0] = bbox_result[:, 0] * (width / 3000)
-        bbox_result[:, 1] = bbox_result[:, 1] * (height / 3000)
-        bbox_result[:, 2] = bbox_result[:, 2] * (width / 3000)
-        bbox_result[:, 3] = bbox_result[:, 3] * (height / 3000)
-
-        bbox_result = [bbox_result]
-        ########################################################
-        bboxes = np.vstack(bbox_result)
-        labels = [
-            np.full(bbox.shape[0], i, dtype=np.int32)
-            for i, bbox in enumerate(bbox_result)
-        ]
-        labels = np.concatenate(labels)
-        # draw segmentation masks
-        segms = None
-        if segm_result is not None and len(labels) > 0:  # non empty
-            segms = mmcv.concat_list(segm_result)
-            if isinstance(segms[0], torch.Tensor):
-                segms = torch.stack(segms, dim=0).detach().cpu().numpy()
-            else:
-                segms = np.stack(segms, axis=0)
-        # if out_file specified, do not show image in window
-        if out_file is not None:
-            show = False
-        # draw bounding boxes
-        img = imshow_det_bboxes(
-            img,
-            bboxes,
-            labels,
-            segms,
-            class_names=self.CLASSES,
-            score_thr=score_thr,
-            bbox_color=bbox_color,
-            text_color=text_color,
-            mask_color=mask_color,
-            thickness=thickness,
-            font_size=font_size,
-            win_name=win_name,
-            show=show,
-            wait_time=wait_time,
-            out_file=out_file)
-
-        if not (show or out_file):
-            return img

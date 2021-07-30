@@ -22,7 +22,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector')
     parser.add_argument('config', help='train config file path')
     parser.add_argument('--work-dir', help='the dir to save logs and models')
-    parser.add_argument('--mode', help='in GL model,there have 3 mode', type=int, choices=[1, 2, 3], default=1)
+    parser.add_argument('mode', help='in GL model,there have 3 mode', type=int, choices=[1, 2, 3, 4], default=1)
     parser.add_argument(
         '--resume-from', help='the checkpoint file to resume from')
     parser.add_argument(
@@ -88,6 +88,9 @@ def main():
     args = parse_args()
 
     cfg = Config.fromfile(args.config)
+
+    work_dir = cfg.work_dir.split('mode')[0]
+
     if args.cfg_options is not None:
         cfg.merge_from_dict(args.cfg_options)
     # import modules from string list.
@@ -161,10 +164,43 @@ def main():
         train_cfg=cfg.get('train_cfg'),
         test_cfg=cfg.get('test_cfg'))
 
+    #####################################################################################
     if args.mode == 2:
-        pass
+        print("mode2 load state from mode1")
+
+        weight_path = os.path.join(work_dir, 'mode1', 'epoch_50.pth')
+
+        assert os.path.isfile(weight_path)
+
+        partial = torch.load(weight_path)
+        partial_item = partial.get("state_dict")
+        state = model.state_dict()
+
+        pretrained_dict = {k: v for k, v
+                           in partial_item.items() if k in state and "global" in k}
+
+        state.update(pretrained_dict)
+
+        model.load_state_dict(state)
     elif args.mode == 3:
-        pass
+        print("mode3 load state from mode2")
+
+        weight_path = os.path.join(work_dir, 'mode2', 'epoch_50.pth')
+
+        assert os.path.isfile(weight_path)
+
+        partial = torch.load(weight_path)
+
+        partial_item = partial.get("state_dict")
+
+        state = model.state_dict()
+
+        pretrained_dict = {k: v for k, v in partial_item.items() if k in state and "local" in k}
+
+        state.update(pretrained_dict)
+        # 3. load the new state dict
+        model.load_state_dict(state)
+    #####################################################################################
 
     datasets = [build_dataset(cfg.data.train)]
     if len(cfg.workflow) == 2:

@@ -5,6 +5,8 @@ from .two_stage_local import TwoStageDetectorLocal
 @DETECTORS.register_module()
 class LocalDynamic(TwoStageDetectorLocal):
     def __init__(self,
+                 p_size,
+                 batch_size,
                  backbone,
                  neck=None,
                  rpn_head=None,
@@ -13,6 +15,8 @@ class LocalDynamic(TwoStageDetectorLocal):
                  test_cfg=None,
                  pretrained=None):
         super(LocalDynamic, self).__init__(
+            p_size=p_size,
+            batch_size=batch_size,
             backbone=backbone,
             neck=neck,
             rpn_head=rpn_head,

@@ -2,6 +2,13 @@
 model = dict(
     type="LocalLibra",
     pretrained='torchvision://resnet50',
+    #####################################
+    # param for split global images,
+    # p_size : split size
+    # batch_size : seleted splited images for train
+    p_size=(800, 800),
+    batch_size=4,
+    #####################################
     backbone=dict(
         type='ResNet',
         depth=50,

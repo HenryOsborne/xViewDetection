@@ -2,6 +2,13 @@
 model = dict(
     type='LocalFasterRCNN',
     pretrained='torchvision://resnet50',
+    ##################################################################
+    # param for split global images,
+    # p_size : split size
+    # batch_size : seleted splited images for train
+    p_size=(800, 800),
+    batch_size=2,
+    ##################################################################
     backbone=dict(
         type='ResNet',
         depth=50,
@@ -18,11 +25,14 @@ model = dict(
         type='RPNHead',
         in_channels=256,
         feat_channels=256,
+        ##################################################################
+        # in local mode ,anchor scales shoule be 8
         anchor_generator=dict(
             type='AnchorGenerator',
             scales=[8],
             ratios=[0.5, 1.0, 2.0],
             strides=[4, 8, 16, 32, 64]),
+        ##################################################################
         loss_cls=dict(
             type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
         loss_bbox=dict(type='SmoothL1Loss', beta=1.0 / 9.0, loss_weight=1.0)),
@@ -61,12 +71,14 @@ model = dict(
             allowed_border=0,
             pos_weight=-1,
             debug=False),
+        ##################################################################
         rpn_proposal=dict(
             nms_pre=2000,
             nms_post=2000,
             max_per_img=2000,
             nms=dict(type='nms', iou_threshold=0.7),
             min_bbox_size=0),
+        ##################################################################
         rcnn=dict(
             assigner=dict(
                 type='MaxIoUAssigner',
@@ -83,11 +95,14 @@ model = dict(
             pos_weight=-1,
             debug=False)),
     test_cfg=dict(
+        ##################################################################
         rpn=dict(
             nms_pre=2000,
             nms_post=2000,
             max_per_img=2000,
-            nms=dict(type='nms', iou_threshold=0.7)),
+            nms=dict(type='nms', iou_threshold=0.7),
+            min_bbox_size=0),
+        ##################################################################
         rcnn=dict(
             score_thr=0.3, nms=dict(type='nms', iou_threshold=0.2), max_per_img=2000)
     )
@@ -97,12 +112,13 @@ model = dict(
 # dataset settings
 dataset_type = 'XviewDataset'
 data_root = 'data/xview/'
+img_scale = (3000, 3000)
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations', with_bbox=True),
-    dict(type='Resize', img_scale=(3000, 3000), keep_ratio=False),
+    dict(type='Resize', img_scale=img_scale, keep_ratio=False),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='Pad', size_divisor=32),
@@ -113,7 +129,7 @@ test_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(
         type='MultiScaleFlipAug',
-        img_scale=(3000, 3000),
+        img_scale=img_scale,
         flip=False,
         transforms=[
             dict(type='Resize', keep_ratio=False),

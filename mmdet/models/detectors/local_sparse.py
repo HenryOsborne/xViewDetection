@@ -8,6 +8,8 @@ import numpy as np
 @DETECTORS.register_module()
 class LocalSparseRCNN(TwoStageDetectorLocal):
     def __init__(self,
+                 p_size,
+                 batch_size,
                  backbone,
                  neck=None,
                  rpn_head=None,
@@ -16,6 +18,8 @@ class LocalSparseRCNN(TwoStageDetectorLocal):
                  test_cfg=None,
                  pretrained=None):
         super(LocalSparseRCNN, self).__init__(
+            p_size=p_size,
+            batch_size=batch_size,
             backbone=backbone,
             neck=neck,
             rpn_head=rpn_head,

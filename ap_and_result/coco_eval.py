@@ -336,8 +336,6 @@ def coco_summarize(self, args):
         out_dir = 'result'
         os.makedirs(out_dir, exist_ok=True)
         out_file_name = os.path.join(out_dir, '{}.txt'.format(bare_name))
-        if os.path.isfile(out_file_name):
-            shutil.rmtree(out_file_name)
         shutil.copy(os.path.join(args.work_dir, 'result.txt'), out_file_name)
         return stats
 
@@ -429,7 +427,7 @@ def set_param(self):
 def parse_args():
     parser = argparse.ArgumentParser(description='MMDet test detector')
 
-    parser.add_argument('--work_dir', default='work_dirs/faster_local')
+    parser.add_argument('--work_dir', default='work_dirs/dynamic_global')
     parser.add_argument('--score', default=0.3, type=float)
     parser.add_argument('--show', default=False, type=bool)
 

@@ -18,11 +18,14 @@ model = dict(
         type='RPNHead',
         in_channels=256,
         feat_channels=256,
+        ##################################################################
+        # in global mode ,anchor scales shoule be 4
         anchor_generator=dict(
             type='AnchorGenerator',
             scales=[4],
             ratios=[0.5, 1.0, 2.0],
             strides=[4, 8, 16, 32, 64]),
+        ##################################################################
         loss_cls=dict(
             type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
         loss_bbox=dict(type='SmoothL1Loss', beta=1.0 / 9.0, loss_weight=1.0)),
