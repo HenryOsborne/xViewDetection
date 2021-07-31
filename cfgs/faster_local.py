@@ -1,3 +1,4 @@
+img_scale = (3000, 3000)
 # model settings
 model = dict(
     type='LocalFasterRCNN',
@@ -8,6 +9,7 @@ model = dict(
     # batch_size : seleted splited images for train
     p_size=(800, 800),
     batch_size=2,
+    ori_shape=img_scale,
     ##################################################################
     backbone=dict(
         type='ResNet',
@@ -112,7 +114,6 @@ model = dict(
 # dataset settings
 dataset_type = 'XviewDataset'
 data_root = 'data/xview/'
-img_scale = (3000, 3000)
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 train_pipeline = [

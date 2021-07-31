@@ -696,14 +696,12 @@ class GLNET_fpn(nn.Module):
             result = [ps3_l[3], ps3_l[2], ps3_l[1], ps3_l[0], p6]
             return result
 
-        else:
-
+        elif mode == 3:
             global_fixed = GLNET_fpn(2)
             global_fixed = nn.DataParallel(global_fixed)
             global_fixed = global_fixed.cuda()
             state = global_fixed.state_dict()  # 'module.resnet_global.conv1.weight'
 
-            # trained_partial = torch.load("../work_dir/mode1_anchor=8/epoch_50.pth")
             trained_partial = torch.load("../work_dir/jack/mode1_ga/epoch_50.pth")
             trained_partial_item = trained_partial.get("state_dict")  # 'neck.resnet_global.conv1.weight'
             from collections import OrderedDict
@@ -729,16 +727,8 @@ class GLNET_fpn(nn.Module):
                 i_patch += 1
 
             c2_g, c3_g, c4_g, c5_g = self.resnet_global.forward(image_global)
-            '''
-            from PIL import Image
-            from torchvision import transforms
-            feature = self.ps2_l[0][0][0].cpu()
-            feature = 1.0 / (1 + np.exp(-1 * feature))
-            feature = np.round(feature * 255)
-            img = transforms.ToPILImage()(feature).convert('RGB')
-            img = img.resize((800, 800), Image.ANTIALIAS)
-            img.save('./feature/' + str(i_patch) + 'c2.jpg')
-            '''
+
+            # draw_feat_map(self, i_patch)
 
             # output_g, ps0_g, ps1_g, ps2_g, ps3_g
             feat = self.fpn_global.forward(c2_g, c3_g, c4_g, c5_g,
@@ -749,3 +739,17 @@ class GLNET_fpn(nn.Module):
 
             self.clear_cache()
             return feat
+
+        else:
+            raise ValueError('wrong mode:{}'.format(mode))
+
+
+def draw_feat_map(self, i_patch):
+    from PIL import Image
+    from torchvision import transforms
+    feature = self.ps2_l[0][0][0].cpu()
+    feature = 1.0 / (1 + np.exp(-1 * feature))
+    feature = np.round(feature * 255)
+    img = transforms.ToPILImage()(feature).convert('RGB')
+    img = img.resize((800, 800), Image.ANTIALIAS)
+    img.save('./feature/' + str(i_patch) + 'c2.jpg')

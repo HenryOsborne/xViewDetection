@@ -6,8 +6,8 @@ import torch.nn as nn
 
 @DETECTORS.register_module
 class GLFasterRCNN(GLTwoStage):
-    MODE = 1
     def __init__(self,
+                 mode,
                  rpn_head,
                  roi_head,
                  train_cfg,
@@ -15,14 +15,13 @@ class GLFasterRCNN(GLTwoStage):
                  neck=None,
                  pretrained=None):
         super(GLFasterRCNN, self).__init__(
+            mode=mode,
             neck=neck,
             rpn_head=rpn_head,
             roi_head=roi_head,
             train_cfg=train_cfg,
             test_cfg=test_cfg,
             pretrained=pretrained)
-
-        self.p_size = (800, 800)
 
     def extract_feat(self, img):
         """Directly extract features from the backbone+neck."""

@@ -7,6 +7,7 @@ class LocalLibra(TwoStageDetectorLocal):
     def __init__(self,
                  p_size,
                  batch_size,
+                 ori_shape,
                  backbone,
                  neck=None,
                  rpn_head=None,
@@ -17,6 +18,7 @@ class LocalLibra(TwoStageDetectorLocal):
         super(LocalLibra, self).__init__(
             p_size=p_size,
             batch_size=batch_size,
+            ori_shape=ori_shape,
             backbone=backbone,
             neck=neck,
             rpn_head=rpn_head,

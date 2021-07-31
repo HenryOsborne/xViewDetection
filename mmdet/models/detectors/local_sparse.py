@@ -10,6 +10,7 @@ class LocalSparseRCNN(TwoStageDetectorLocal):
     def __init__(self,
                  p_size,
                  batch_size,
+                 ori_shape,
                  backbone,
                  neck=None,
                  rpn_head=None,
@@ -20,6 +21,7 @@ class LocalSparseRCNN(TwoStageDetectorLocal):
         super(LocalSparseRCNN, self).__init__(
             p_size=p_size,
             batch_size=batch_size,
+            ori_shape=ori_shape,
             backbone=backbone,
             neck=neck,
             rpn_head=rpn_head,
@@ -46,8 +48,8 @@ class LocalSparseRCNN(TwoStageDetectorLocal):
         bbox_patches, label_patches = \
             self.label_to_patch(img, self.p_size, gt_bboxes, gt_labels, gt_masks)
 
-        img_metas[0]['img_shape'] = (800, 800, 3)
-        img_metas[0]['pad_shape'] = (800, 800, 3)
+        img_metas[0]['img_shape'] = (self.p_size[0], self.p_size[1], 3)
+        img_metas[0]['pad_shape'] = (self.p_size[0], self.p_size[1], 3)
         img_metas[0]['scale_factor'] = 1.0
 
         count_patch = 0
@@ -96,9 +98,9 @@ class LocalSparseRCNN(TwoStageDetectorLocal):
 
     def simple_test(self, img, img_metas, rescale=False):
         assert self.with_bbox, "Bbox head must be implemented."
-        img_metas[0]['img_shape'] = (800, 800, 3)
+        img_metas[0]['img_shape'] = (self.p_size[0], self.p_size[1], 3)
+        img_metas[0]['pad_shape'] = (self.p_size[0], self.p_size[1], 3)
         img_metas[0]['scale_factor'] = 1.0
-        img_metas[0]['pad_shape'] = (800, 800, 3)
 
         patches, coordinates, templates, sizes, ratios = self.global_to_patch(img, self.p_size)
 
@@ -154,7 +156,7 @@ class LocalSparseRCNN(TwoStageDetectorLocal):
         # rpn
         num_imgs = len(img)
         dummy_img_metas = [
-            dict(img_shape=(800, 800, 3)) for _ in range(num_imgs)
+            dict(img_shape=(self.p_size[0], self.p_size[1], 3)) for _ in range(num_imgs)
         ]
         proposal_boxes, proposal_features, imgs_whwh = \
             self.rpn_head.simple_test_rpn(x, dummy_img_metas)

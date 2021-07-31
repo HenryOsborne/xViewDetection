@@ -33,9 +33,10 @@ from .local_faster import LocalFasterRCNN
 from .local_sparse import LocalSparseRCNN
 from .local_dynamic import LocalDynamic
 from .gl_two_stage import GLTwoStage
-from .gl_faster_global import GLFasterRCNN
+from .global_gl_faster import GLFasterRCNN
 from .two_stage_local import TwoStageDetectorLocal
 from .local_cascade import LocalCascadeRCNN
+from .local_gl_faster import LocalGLFasterRCNN
 
 __all__ = [
     'ATSS', 'BaseDetector', 'SingleStageDetector',
@@ -46,5 +47,5 @@ __all__ = [
     'YOLOV3', 'YOLACT', 'VFNet', 'DETR', 'TridentFasterRCNN', 'SparseRCNN',
     'SCNet', 'LocalLibra', 'LocalFasterRCNN',
     'LocalSparseRCNN', 'LocalDynamic', 'GLFasterRCNN', 'GLTwoStage', 'TwoStageDetectorLocal',
-    'LocalCascadeRCNN'
+    'LocalCascadeRCNN', 'LocalGLFasterRCNN'
 ]

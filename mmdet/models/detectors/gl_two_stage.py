@@ -7,6 +7,7 @@ import torch
 @DETECTORS.register_module()
 class GLTwoStage(BaseDetector):
     def __init__(self,
+                 mode,
                  rpn_head,
                  roi_head,
                  train_cfg,
@@ -14,6 +15,7 @@ class GLTwoStage(BaseDetector):
                  neck=None,
                  pretrained=None):
         super(GLTwoStage, self).__init__()
+        self.MODE = mode
 
         if neck is not None:
             self.neck = build_neck(neck)
@@ -36,6 +38,61 @@ class GLTwoStage(BaseDetector):
         self.test_cfg = test_cfg
 
         self.init_weights(pretrained=pretrained)
+
+    def forward_train(self,
+                      img,
+                      img_metas,
+                      gt_bboxes,
+                      gt_labels,
+                      gt_bboxes_ignore=None,
+                      gt_masks=None,
+                      proposals=None,
+                      **kwargs):
+        x = self.extract_feat(img)
+
+        losses = dict()
+
+        # RPN forward and loss
+        if self.with_rpn:
+            proposal_cfg = self.train_cfg.get('rpn_proposal',
+                                              self.test_cfg.rpn)
+            rpn_losses, proposal_list = self.rpn_head.forward_train(
+                x,
+                img_metas,
+                gt_bboxes,
+                gt_labels=None,
+                gt_bboxes_ignore=gt_bboxes_ignore,
+                proposal_cfg=proposal_cfg)
+            losses.update(rpn_losses)
+        else:
+            proposal_list = proposals
+
+        roi_losses = self.roi_head.forward_train(x, img_metas, proposal_list,
+                                                 gt_bboxes, gt_labels,
+                                                 gt_bboxes_ignore, gt_masks,
+                                                 **kwargs)
+        losses.update(roi_losses)
+
+        return losses
+
+    def simple_test(self, img, img_metas, proposals=None, rescale=False):
+        """Test without augmentation."""
+        assert self.with_bbox, 'Bbox head must be implemented.'
+
+        x = self.extract_feat(img)
+
+        # get origin input shape to onnx dynamic input shape
+        if torch.onnx.is_in_onnx_export():
+            img_shape = torch._shape_as_tensor(img)[2:]
+            img_metas[0]['img_shape_for_onnx'] = img_shape
+
+        if proposals is None:
+            proposal_list = self.rpn_head.simple_test_rpn(x, img_metas)
+        else:
+            proposal_list = proposals
+
+        return self.roi_head.simple_test(
+            x, proposal_list, img_metas, rescale=rescale)
 
     @property
     def with_rpn(self):
@@ -77,42 +134,6 @@ class GLTwoStage(BaseDetector):
         outs = outs + (roi_outs,)
         return outs
 
-    def forward_train(self,
-                      img,
-                      img_metas,
-                      gt_bboxes,
-                      gt_labels,
-                      gt_bboxes_ignore=None,
-                      gt_masks=None,
-                      proposals=None,
-                      **kwargs):
-        x = self.extract_feat(img)
-
-        losses = dict()
-
-        # RPN forward and loss
-        if self.with_rpn:
-            proposal_cfg = self.train_cfg.get('rpn_proposal',
-                                              self.test_cfg.rpn)
-            rpn_losses, proposal_list = self.rpn_head.forward_train(
-                x,
-                img_metas,
-                gt_bboxes,
-                gt_labels=None,
-                gt_bboxes_ignore=gt_bboxes_ignore,
-                proposal_cfg=proposal_cfg)
-            losses.update(rpn_losses)
-        else:
-            proposal_list = proposals
-
-        roi_losses = self.roi_head.forward_train(x, img_metas, proposal_list,
-                                                 gt_bboxes, gt_labels,
-                                                 gt_bboxes_ignore, gt_masks,
-                                                 **kwargs)
-        losses.update(roi_losses)
-
-        return losses
-
     async def async_simple_test(self,
                                 img,
                                 img_meta,
@@ -130,25 +151,6 @@ class GLTwoStage(BaseDetector):
 
         return await self.roi_head.async_simple_test(
             x, proposal_list, img_meta, rescale=rescale)
-
-    def simple_test(self, img, img_metas, proposals=None, rescale=False):
-        """Test without augmentation."""
-        assert self.with_bbox, 'Bbox head must be implemented.'
-
-        x = self.extract_feat(img)
-
-        # get origin input shape to onnx dynamic input shape
-        if torch.onnx.is_in_onnx_export():
-            img_shape = torch._shape_as_tensor(img)[2:]
-            img_metas[0]['img_shape_for_onnx'] = img_shape
-
-        if proposals is None:
-            proposal_list = self.rpn_head.simple_test_rpn(x, img_metas)
-        else:
-            proposal_list = proposals
-
-        return self.roi_head.simple_test(
-            x, proposal_list, img_metas, rescale=rescale)
 
     def aug_test(self, imgs, img_metas, rescale=False):
         """Test with augmentations.

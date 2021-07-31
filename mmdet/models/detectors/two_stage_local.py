@@ -22,6 +22,7 @@ class TwoStageDetectorLocal(BaseDetector):
     def __init__(self,
                  p_size,
                  batch_size,
+                 ori_shape,
                  backbone,
                  neck=None,
                  rpn_head=None,
@@ -56,6 +57,7 @@ class TwoStageDetectorLocal(BaseDetector):
 
         self.p_size = p_size
         self.batch_size = batch_size
+        self.ori_shape = ori_shape
 
     def forward_train(self,
                       img,
@@ -71,8 +73,8 @@ class TwoStageDetectorLocal(BaseDetector):
         bbox_patches, label_patches = \
             self.label_to_patch(img, self.p_size, gt_bboxes, gt_labels, gt_masks)  # 将label切分
 
-        img_metas[0]['img_shape'] = (800, 800, 3)
-        img_metas[0]['pad_shape'] = (800, 800, 3)
+        img_metas[0]['img_shape'] = (self.p_size[0], self.p_size[1], 3)
+        img_metas[0]['pad_shape'] = (self.p_size[0], self.p_size[1], 3)
         img_metas[0]['scale_factor'] = 1.0
 
         count_patch = 0
@@ -84,8 +86,8 @@ class TwoStageDetectorLocal(BaseDetector):
             except:
                 continue
 
-            if label_patches[i_patch].shape == torch.Size([0]) or bbox_patches[i_patch] is None or label_patches[
-                i_patch] is None:
+            if label_patches[i_patch].shape == torch.Size([0]) or bbox_patches[i_patch] is None \
+                    or label_patches[i_patch] is None:
                 continue
 
             input_patch = patches[0][i_patch]
@@ -128,9 +130,9 @@ class TwoStageDetectorLocal(BaseDetector):
         """Test without augmentation."""
         assert self.with_bbox, 'Bbox head must be implemented.'
 
-        img_metas[0]['img_shape'] = (800, 800, 3)
+        img_metas[0]['img_shape'] = (self.p_size[0], self.p_size[1], 3)
+        img_metas[0]['pad_shape'] = (self.p_size[0], self.p_size[1], 3)
         img_metas[0]['scale_factor'] = 1.0
-        img_metas[0]['pad_shape'] = (800, 800, 3)
 
         patches, coordinates, templates, sizes, ratios = \
             self.global_to_patch(img, self.p_size)  # patches,patch位置,？,img_size,p_size/img_size
@@ -196,10 +198,10 @@ class TwoStageDetectorLocal(BaseDetector):
         ########################################################
         width, height = img.shape[1], img.shape[0]
 
-        bbox_result[:, 0] = bbox_result[:, 0] * (width / 3000)
-        bbox_result[:, 1] = bbox_result[:, 1] * (height / 3000)
-        bbox_result[:, 2] = bbox_result[:, 2] * (width / 3000)
-        bbox_result[:, 3] = bbox_result[:, 3] * (height / 3000)
+        bbox_result[:, 0] = bbox_result[:, 0] * (width / self.ori_shape[0])
+        bbox_result[:, 1] = bbox_result[:, 1] * (height / self.ori_shape[1])
+        bbox_result[:, 2] = bbox_result[:, 2] * (width / self.ori_shape[0])
+        bbox_result[:, 3] = bbox_result[:, 3] * (height / self.ori_shape[1])
 
         bbox_result = [bbox_result]
         ########################################################

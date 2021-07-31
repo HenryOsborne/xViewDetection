@@ -427,9 +427,9 @@ def set_param(self):
 def parse_args():
     parser = argparse.ArgumentParser(description='MMDet test detector')
 
-    parser.add_argument('--work_dir', default='work_dirs/sparse_local')
+    parser.add_argument('--work_dir', default='work_dirs/ga_local')
     parser.add_argument('--score', default=0.3, type=float)
-    parser.add_argument('--show', default=False, type=bool)
+    parser.add_argument('--show', default=True, type=bool)
 
     parser.add_argument('--val_path', type=str, default='data/xview/annotations/instances_val2017.json')
     parser.add_argument('--eval', type=str, default='bbox', nargs='+',

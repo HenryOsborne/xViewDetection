@@ -1,3 +1,4 @@
+img_scale = (3000, 3000)
 # model settings
 model = dict(
     type="LocalLibra",
@@ -7,7 +8,8 @@ model = dict(
     # p_size : split size
     # batch_size : seleted splited images for train
     p_size=(800, 800),
-    batch_size=4,
+    batch_size=2,
+    ori_shape=img_scale,
     #####################################
     backbone=dict(
         type='ResNet',
@@ -132,7 +134,7 @@ img_norm_cfg = dict(
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations', with_bbox=True),
-    dict(type='Resize', img_scale=(3000, 3000), keep_ratio=False),
+    dict(type='Resize', img_scale=img_scale, keep_ratio=False),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
     dict(type='Pad', size_divisor=32),
@@ -143,7 +145,7 @@ test_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(
         type='MultiScaleFlipAug',
-        img_scale=(3000, 3000),
+        img_scale=img_scale,
         flip=False,
         transforms=[
             dict(type='Resize', keep_ratio=False),
