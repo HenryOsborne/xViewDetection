@@ -1,14 +1,19 @@
 img_scale = (800, 800)
+work_dir = './work_dirs/gl_ga_mode3'
 # model settings
 model = dict(
-    type='GLFasterRCNN',
+    type='GlobalGLGA',
     pretrained='torchvision://resnet50',
     neck=dict(
         type='GLNET_fpn',
-        numClass=2
+        numClass=2,
+        work_dir=work_dir
     ),
     ###############################################
+    p_size=(800, 800),
+    batch_size=2,
     mode=3,
+    ori_shape=(3000, 3000),
     ###############################################
     rpn_head=dict(
         type='GARPNHead',
@@ -195,7 +200,7 @@ lr_config = dict(
 checkpoint_config = dict(interval=5)
 # yapf:disable
 log_config = dict(
-    interval=50,
+    interval=5,
     hooks=[
         dict(type='TextLoggerHook'),
         dict(type='TensorboardLoggerHook')
@@ -206,7 +211,6 @@ evaluation = dict(interval=51, metric='bbox')
 runner = dict(type='EpochBasedRunner', max_epochs=50)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/gl_ga_mode3'
 load_from = None
 resume_from = None
 workflow = [('train', 1)]

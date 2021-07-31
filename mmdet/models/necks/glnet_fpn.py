@@ -4,6 +4,7 @@ import torch
 import numpy as np
 from ..builder import NECKS
 from .. import builder
+import os
 
 
 class fpn_module_global(nn.Module):
@@ -301,8 +302,9 @@ class fpn_module_local(nn.Module):
 
 @NECKS.register_module
 class GLNET_fpn(nn.Module):
-    def __init__(self, numClass):
+    def __init__(self, numClass, work_dir=None):
         super(GLNET_fpn, self).__init__()
+        self.work_dir = work_dir
         self._up_kwargs = {'mode': 'bilinear', 'align_corners': True}
 
         backbone_config = {'type': 'ResNet', 'depth': 50, 'num_stages': 4,
@@ -378,7 +380,7 @@ class GLNET_fpn(nn.Module):
                 #constant_init()
                 xavier_init(m, distribution='uniform')
         """
-        if mode == 1:
+        if mode == 1 or mode == 3:
             self.resnet_global.init_weights('torchvision://resnet50')  # 'torchvision://resnet50'
         elif mode == 2:
             self.resnet_local.init_weights('torchvision://resnet50')  # 'torchvision://resnet50'
@@ -566,8 +568,7 @@ class GLNET_fpn(nn.Module):
                 ps0_ext=[self._crop_global(f, top_lefts[oped[0]:oped[1]], ratio) for f in self.ps0_g],
                 ps1_ext=[self._crop_global(f, top_lefts[oped[0]:oped[1]], ratio) for f in self.ps1_g],
                 ps2_ext=[self._crop_global(f, top_lefts[oped[0]:oped[1]], ratio) for f in self.ps2_g],
-                mode=3
-            )
+                mode=3)
 
             self.patch_n += 1  # patches.size()[0]
             self.patch_n %= n_patch_all
@@ -697,12 +698,17 @@ class GLNET_fpn(nn.Module):
             return result
 
         elif mode == 3:
+            assert 'mode3' in self.work_dir
+            finished_path = self.work_dir.replace('mode3', 'global')
+            weight_path = os.path.join(finished_path, 'epoch_50.pth')
+            assert os.path.isfile(weight_path), 'please run mode1 first'
+
             global_fixed = GLNET_fpn(2)
             global_fixed = nn.DataParallel(global_fixed)
             global_fixed = global_fixed.cuda()
             state = global_fixed.state_dict()  # 'module.resnet_global.conv1.weight'
 
-            trained_partial = torch.load("../work_dir/jack/mode1_ga/epoch_50.pth")
+            trained_partial = torch.load(weight_path)
             trained_partial_item = trained_partial.get("state_dict")  # 'neck.resnet_global.conv1.weight'
             from collections import OrderedDict
             new_state_dict = OrderedDict()  # 新建一个model

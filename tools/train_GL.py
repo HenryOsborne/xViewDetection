@@ -171,7 +171,7 @@ def main():
         assert 'local' in work_dir
         finished_path = work_dir.replace('local', 'global')
         weight_path = os.path.join(finished_path, 'epoch_50.pth')
-        assert os.path.isfile(weight_path)
+        assert os.path.isfile(weight_path), 'please run mode 1 first'
         partial = torch.load(weight_path)
         print('load model from {}'.format(weight_path))
         partial_item = partial.get("state_dict")
@@ -185,8 +185,10 @@ def main():
     elif mode == 3:
         print("mode3 load state from mode2")
 
-        weight_path = os.path.join(work_dir, 'mode2', 'epoch_50.pth')
-        assert os.path.isfile(weight_path)
+        assert 'mode3' in work_dir
+        finished_path = work_dir.replace('mode3', 'local')
+        weight_path = os.path.join(finished_path, 'epoch_50.pth')
+        assert os.path.isfile(weight_path), 'please run mode 2 first'
         partial = torch.load(weight_path)
         partial_item = partial.get("state_dict")
         state = model.state_dict()

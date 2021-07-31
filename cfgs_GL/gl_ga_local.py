@@ -1,7 +1,7 @@
 img_scale = (3000, 3000)
 # model settings
 model = dict(
-    type='LocalGLFasterRCNN',
+    type='LocalGLGA',
     pretrained='torchvision://resnet50',
     neck=dict(
         type='GLNET_fpn',

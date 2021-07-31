@@ -14,12 +14,12 @@ except ImportError:
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector')
     parser.add_argument('--config', help='train config file path',
-                        default='cfgs_GL/gl_ga_local.py')
+                        default='cfgs_GL/gl_ga_global.py')
     parser.add_argument(
         '--shape',
         type=int,
         nargs='+',
-        default=[3000, 3000],
+        default=[800, 800],
         help='input image size')
     parser.add_argument(
         '--cfg-options',

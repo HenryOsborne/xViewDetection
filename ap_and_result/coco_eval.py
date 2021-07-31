@@ -427,7 +427,7 @@ def set_param(self):
 def parse_args():
     parser = argparse.ArgumentParser(description='MMDet test detector')
 
-    parser.add_argument('--work_dir', default='work_dirs/ga_local')
+    parser.add_argument('--work_dir', default='work_dirs/gl_ga_local')
     parser.add_argument('--score', default=0.3, type=float)
     parser.add_argument('--show', default=True, type=bool)
 

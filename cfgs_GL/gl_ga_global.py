@@ -1,12 +1,17 @@
 img_scale = (800, 800)
 # model settings
 model = dict(
-    type='GLFasterRCNN',
+    type='GlobalGLGA',
     pretrained='torchvision://resnet50',
     neck=dict(
         type='GLNET_fpn',
         numClass=2
     ),
+    ###############################################
+    # this three param is useless in mode 1
+    p_size=(800, 800),
+    batch_size=2,
+    ori_shape=(3000, 3000),
     ###############################################
     mode=1,
     ###############################################
