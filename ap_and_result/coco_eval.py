@@ -335,6 +335,7 @@ def coco_summarize(self, args):
 
     def _summarizeDets(args):
         stats = np.zeros((3,))
+        # TODO：the result should write in work_dir name, not bare_name
         f = open(os.path.join(args.work_dir, 'result.txt'), 'a+')
         bare_name = os.path.basename(args.work_dir)
         f.write(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '\n')
@@ -460,8 +461,12 @@ def set_param(self):
     ########################################################################################
     # 调用cocoeval时所需的参数
     p.maxDets = [100000]
-    # p.iouThrs = np.array([0.5])
-    p.iouThrs = np.linspace(.5, 0.95, int(np.round((0.95 - .5) / .05)) + 1, endpoint=True)
+    if args.eval_mode == 'single':
+        p.iouThrs = np.array([0.5])
+    elif args.eval_mode == 'multiple':
+        p.iouThrs = np.linspace(.5, 0.95, int(np.round((0.95 - .5) / .05)) + 1, endpoint=True)
+    else:
+        raise ValueError('wrong eval_mode')
     p.recThrs = np.linspace(.0, 1.00, int(np.round((1.00 - .0) / .01)) + 1, endpoint=True)
     p.scoceThrs = args.score
     p.areaRng = [[0 ** 2, 1e5 ** 2]]
@@ -473,9 +478,17 @@ def set_param(self):
 def parse_args():
     parser = argparse.ArgumentParser(description='MMDet test detector')
 
+    #####################################################################################################
     parser.add_argument('--work_dir', default='work_dirs/mode1_anchor4')
+    # please point out work_dir in this place
     parser.add_argument('--score', default=0.3, type=float)
+    # drop result if result's score small than args.score
     parser.add_argument('--show', default=False, type=bool)
+    # whether to draw pred box to img
+    parser.add_argument('--eval_mode', choices=['single', 'multiple'], type=str, default='single')
+    # if eval_mode is single, only eval iouThr=0.5
+    # else if eval_mode is multiple, eval iouThr from 0.5 to 0.95
+    #####################################################################################################
 
     parser.add_argument('--val_path', type=str, default='data/xview/annotations/instances_val2017.json')
     parser.add_argument('--eval', type=str, default='bbox', nargs='+',
@@ -496,6 +509,7 @@ def parse_args():
         raise ValueError('Wrong work_dir name')
     print('Start Evaluateing {} model'.format(bare_name))
 
+    # TODO:bare_name could different with work_dir name, config is the single (.py) file in work_dir
     args.config = os.path.join(args.work_dir, '{}.py'.format(bare_name))
     args.checkpoint = os.path.join(args.work_dir, 'epoch_50.pth')
     args.ResFile = os.path.join(args.work_dir, 'ResFile.json')
