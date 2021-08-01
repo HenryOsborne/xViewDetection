@@ -1,7 +1,7 @@
 img_scale = (3000, 3000)
 # model settings
 model = dict(
-    type='LocalGLFasterRCNN',
+    type='LocalGLGA',
     pretrained='torchvision://resnet50',
     neck=dict(
         type='GLNET_fpn',
@@ -61,11 +61,10 @@ model = dict(
             pos_weight=-1,
             debug=False),
         rpn_proposal=dict(
-            nms_across_levels=False,
             nms_pre=2000,
             nms_post=2000,
-            max_num=2000,
-            nms_thr=0.7,
+            max_per_img=2000,
+            nms=dict(type='nms', iou_threshold=0.7),
             min_bbox_size=0),
         rcnn=dict(
             assigner=dict(
@@ -84,11 +83,10 @@ model = dict(
             debug=False)),
     test_cfg=dict(
         rpn=dict(
-            nms_across_levels=False,
             nms_pre=2000,
             nms_post=2000,
-            max_num=2000,
-            nms_thr=0.7,
+            max_per_img=2000,
+            nms=dict(type='nms', iou_threshold=0.7),
             min_bbox_size=0),
         rcnn=dict(
             score_thr=0.3, nms=dict(type='nms', iou_thr=0.2), max_per_img=200)
@@ -171,7 +169,7 @@ evaluation = dict(interval=51, metric='bbox')
 runner = dict(type='EpochBasedRunner', max_epochs=50)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/gl_faster_local'
+work_dir = None
 load_from = None
 resume_from = None
 workflow = [('train', 1)]

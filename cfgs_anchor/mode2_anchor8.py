@@ -1,19 +1,25 @@
-img_scale = (800, 800)
+img_scale = (3000, 3000)
 # model settings
 model = dict(
-    type='GLFasterRCNN',
+    type='LocalGLGA',
     pretrained='torchvision://resnet50',
     neck=dict(
         type='GLNET_fpn',
         numClass=2
     ),
+    ###############################################
+    p_size=(800, 800),
+    batch_size=2,
+    ori_shape=img_scale,
+    mode=2,
+    ###############################################
     rpn_head=dict(
         type='RPNHead',
         in_channels=256,
         feat_channels=256,
         anchor_generator=dict(
             type='AnchorGenerator',
-            scales=[4],
+            scales=[8],
             ratios=[0.5, 1.0, 2.0],
             strides=[4, 8, 16, 32, 64]),
         loss_cls=dict(
@@ -55,9 +61,9 @@ model = dict(
             pos_weight=-1,
             debug=False),
         rpn_proposal=dict(
-            nms_pre=10000,
-            nms_post=10000,
-            max_per_img=10000,
+            nms_pre=2000,
+            nms_post=2000,
+            max_per_img=2000,
             nms=dict(type='nms', iou_threshold=0.7),
             min_bbox_size=0),
         rcnn=dict(
@@ -77,19 +83,18 @@ model = dict(
             debug=False)),
     test_cfg=dict(
         rpn=dict(
-            nms_pre=10000,
-            nms_post=10000,
-            max_per_img=10000,
+            nms_pre=2000,
+            nms_post=2000,
+            max_per_img=2000,
             nms=dict(type='nms', iou_threshold=0.7),
             min_bbox_size=0),
         rcnn=dict(
-            # score_thr=0.3,nms=dict(type='soft_nms', iou_thr=0.3, min_score=0.05) , max_per_img=500)
-            score_thr=0.3, nms=dict(type='nms', iou_thr=0.2), max_per_img=3000)
+            score_thr=0.3, nms=dict(type='nms', iou_thr=0.2), max_per_img=200)
+        # score_thr=0.05, nms=dict(type='soft_nms', iou_thr=0.15, min_score=0.3) , max_per_img=200)
         # soft-nms is also supported for rcnn testing
-        # e.g.,   nms=dict(type='nms', iou_thr=0.3)
+        # e.g., nms=dict(type='soft_nms', iou_thr=0.5, min_score=0.05)
     )
 )
-# model training and testing settings
 
 # dataset settings
 dataset_type = 'XviewDataset'
@@ -122,13 +127,12 @@ test_pipeline = [
             dict(type='Collect', keys=['img']),
         ])
 ]
-
 data = dict(
     samples_per_gpu=1,
     workers_per_gpu=2,
     train=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/instances_train2017.json',
+        ann_file=data_root + 'annotations/train_local.json',
         img_prefix=data_root + 'images/',
         pipeline=train_pipeline),
     val=dict(
@@ -165,7 +169,7 @@ evaluation = dict(interval=51, metric='bbox')
 runner = dict(type='EpochBasedRunner', max_epochs=50)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/gl_faster_global'
+work_dir = None
 load_from = None
 resume_from = None
 workflow = [('train', 1)]

@@ -1,54 +1,51 @@
 img_scale = (800, 800)
-work_dir = './work_dirs/gl_ga_mode3'
-# model settings
 model = dict(
-    type='GlobalGLGA',
-    pretrained='torchvision://resnet50',
-    neck=dict(
-        type='GLNET_fpn',
-        numClass=2,
-        work_dir=work_dir
-    ),
-    ###############################################
-    p_size=(800, 800),
-    batch_size=2,
-    mode=3,
-    ori_shape=(3000, 3000),
-    ###############################################
+    type='FasterRCNN',
+    pretrained='open-mmlab://msra/hrnetv2_w32',
+    backbone=dict(
+        type='HRNet',
+        extra=dict(
+            stage1=dict(
+                num_modules=1,
+                num_branches=1,
+                block='BOTTLENECK',
+                num_blocks=(4,),
+                num_channels=(64,)),
+            stage2=dict(
+                num_modules=1,
+                num_branches=2,
+                block='BASIC',
+                num_blocks=(4, 4),
+                num_channels=(32, 64)),
+            stage3=dict(
+                num_modules=4,
+                num_branches=3,
+                block='BASIC',
+                num_blocks=(4, 4, 4),
+                num_channels=(32, 64, 128)),
+            stage4=dict(
+                num_modules=3,
+                num_branches=4,
+                block='BASIC',
+                num_blocks=(4, 4, 4, 4),
+                num_channels=(32, 64, 128, 256)))),
+    neck=dict(type='HRFPN', in_channels=[32, 64, 128, 256], out_channels=256),
     rpn_head=dict(
-        type='GARPNHead',
+        type='RPNHead',
         in_channels=256,
         feat_channels=256,
-        approx_anchor_generator=dict(
+        anchor_generator=dict(
             type='AnchorGenerator',
-            octave_base_scale=4,
-            scales_per_octave=3,
+            scales=[4],
             ratios=[0.5, 1.0, 2.0],
             strides=[4, 8, 16, 32, 64]),
-        square_anchor_generator=dict(
-            type='AnchorGenerator',
-            ratios=[1.0],
-            scales=[4],
-            strides=[4, 8, 16, 32, 64]),
-        anchor_coder=dict(
-            type='DeltaXYWHBBoxCoder',
-            target_means=[.0, .0, .0, .0],
-            target_stds=[0.07, 0.07, 0.14, 0.14]),
         bbox_coder=dict(
             type='DeltaXYWHBBoxCoder',
-            target_means=[.0, .0, .0, .0],
-            target_stds=[0.07, 0.07, 0.11, 0.11]),
-        loc_filter_thr=0.01,
-        loss_loc=dict(
-            type='FocalLoss',
-            use_sigmoid=True,
-            gamma=2.0,
-            alpha=0.25,
-            loss_weight=1.0),
-        loss_shape=dict(type='BoundedIoULoss', beta=0.2, loss_weight=1.0),
+            target_means=[0.0, 0.0, 0.0, 0.0],
+            target_stds=[1.0, 1.0, 1.0, 1.0]),
         loss_cls=dict(
             type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
-        loss_bbox=dict(type='SmoothL1Loss', beta=1.0, loss_weight=1.0)),
+        loss_bbox=dict(type='L1Loss', loss_weight=1.0)),
     roi_head=dict(
         type='StandardRoIHead',
         bbox_roi_extractor=dict(
@@ -62,26 +59,16 @@ model = dict(
             fc_out_channels=1024,
             roi_feat_size=7,
             num_classes=1,
+            bbox_coder=dict(
+                type='DeltaXYWHBBoxCoder',
+                target_means=[0.0, 0.0, 0.0, 0.0],
+                target_stds=[0.1, 0.1, 0.2, 0.2]),
             reg_class_agnostic=False,
             loss_cls=dict(
                 type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0),
-            loss_bbox=dict(type='SmoothL1Loss', beta=1.0, loss_weight=1.0))
-    ),
-    # model training and testing settings
+            loss_bbox=dict(type='L1Loss', loss_weight=1.0))),
     train_cfg=dict(
         rpn=dict(
-            ga_assigner=dict(
-                type='ApproxMaxIoUAssigner',
-                pos_iou_thr=0.7,
-                neg_iou_thr=0.3,
-                min_pos_iou=0.3,
-                ignore_iof_thr=-1),
-            ga_sampler=dict(
-                type='RandomSampler',
-                num=256,
-                pos_fraction=0.5,
-                neg_pos_ub=-1,
-                add_gt_as_proposals=False),
             assigner=dict(
                 type='MaxIoUAssigner',
                 pos_iou_thr=0.7,
@@ -94,10 +81,8 @@ model = dict(
                 pos_fraction=0.5,
                 neg_pos_ub=-1,
                 add_gt_as_proposals=False),
-            allowed_border=-1,
+            allowed_border=0,
             pos_weight=-1,
-            center_ratio=0.2,
-            ignore_ratio=0.5,
             debug=False),
         rpn_proposal=dict(
             nms_pre=10000,
@@ -128,10 +113,9 @@ model = dict(
             nms=dict(type='nms', iou_threshold=0.7),
             min_bbox_size=0),
         rcnn=dict(
-            # score_thr=0.05, nms=dict(type='nms', iou_thr=0.2), max_per_img=3000)
-            # score_thr=0.05, nms=dict(type='soft_nms', iou_thr=0.15, min_score=0.3) , max_per_img=2000)
-            # score_thr=0.01, nms=dict(type='nms', iou_thr=0.1), max_per_img=2000)
+            # score_thr=0.05, nms=dict(type='nms', iou_thr=0.5), max_per_img=2000)
             score_thr=0.3, nms=dict(type='nms', iou_threshold=0.2), max_per_img=10000)
+        # score_thr=0.05, nms=dict(type='soft_nms', iou_thr=0.15, min_score=0.3) , max_per_img=2000)
         # soft-nms is also supported for rcnn testing
         # e.g., nms=dict(type='soft_nms', iou_thr=0.5, min_score=0.05)
     )
@@ -188,6 +172,7 @@ data = dict(
         img_prefix=data_root + 'images/',
         pipeline=test_pipeline))
 # optimizer
+evaluation = dict(interval=51, metric='bbox')
 optimizer = dict(type='SGD', lr=0.0025, momentum=0.9, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 # learning policy
@@ -197,20 +182,20 @@ lr_config = dict(
     warmup_iters=500,
     warmup_ratio=1.0 / 3,
     step=[45, 48])
-checkpoint_config = dict(interval=5)
+checkpoint_config = dict(interval=10)
 # yapf:disable
 log_config = dict(
-    interval=5,
+    interval=50,
     hooks=[
         dict(type='TextLoggerHook'),
         dict(type='TensorboardLoggerHook')
     ])
 # yapf:enable
 # runtime settings
-evaluation = dict(interval=51, metric='bbox')
 runner = dict(type='EpochBasedRunner', max_epochs=50)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
+work_dir = './work_dirs/hrnet_global'
 load_from = None
-resume_from = 'work_dirs/gl_ga_mode3/epoch_10.pth'
+resume_from = None
 workflow = [('train', 1)]

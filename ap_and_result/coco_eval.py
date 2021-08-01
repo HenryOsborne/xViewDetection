@@ -175,7 +175,7 @@ def coco_accumulate(self, p=None):
     precision = -np.ones((T, R, K, A, M))  # -1 for the precision of absent categories
     recall = -np.ones((T, K, A, M))
     scores = -np.ones((T, R, K, A, M))
-    Pre = 0
+    Pre = []
 
     # create dictionary for future indexing
     _pe = self._paramsEval
@@ -225,7 +225,7 @@ def coco_accumulate(self, p=None):
                     nd = len(tp)
                     rc = tp / npig
                     pr = tp / (fp + tp + np.spacing(1))
-                    Pre = np.mean(pr)
+                    Pre.append(np.mean(pr))
                     q = np.zeros((R,))
                     ss = np.zeros((R,))
 
@@ -280,12 +280,16 @@ def coco_summarize(self, args):
             titleStr = 'Average Recall'
         elif ap == 2:
             titleStr = 'Precision'
+        else:
+            raise NotImplementedError('ap should be 0,1,2')
         if ap == 1:
             typeStr = '(AP)'
         elif ap == 0:
             typeStr = '(AR)'
         elif ap == 2:
             typeStr = '(PR)'
+        else:
+            raise NotImplementedError('ap should be 0,1,2')
         iouStr = '{:0.2f}:{:0.2f}'.format(p.iouThrs[0], p.iouThrs[-1]) \
             if iouThr is None else '{:0.2f}'.format(iouThr)
 
@@ -307,9 +311,19 @@ def coco_summarize(self, args):
                 s = s[t]
             s = s[:, :, aind, mind]
         elif ap == 2:
-            mean_s = self.eval['Pr']
+            s = self.eval['Pr']
+            if iouThr is not None:
+                t = np.where(iouThr == p.iouThrs)[0]
+                # mean_s = s[t[0]]
+                s = s[t[0]]
+            else:
+                # mean_s = np.mean(s)
+                pass
 
-        if ap != 2:
+        # if ap != 2:
+        if isinstance(s, list):  # for ap==2 ,to get average precision
+            mean_s = np.mean(s)
+        else:
             if len(s[s > -1]) == 0:
                 mean_s = -1
             else:
@@ -339,7 +353,38 @@ def coco_summarize(self, args):
         shutil.copy(os.path.join(args.work_dir, 'result.txt'), out_file_name)
         return stats
 
-    summarize = _summarizeDets
+    def _summarizeDets2(args):
+        stats = np.zeros((9,))
+        f = open(os.path.join(args.work_dir, 'result.txt'), 'a+')
+        bare_name = os.path.basename(args.work_dir)
+        f.write(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '\n')
+        stats[0] = _summarize(1, iouThr=.5, maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[1] = _summarize(0, iouThr=.5, maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[2] = _summarize(2, iouThr=.5, maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[3] = _summarize(1, iouThr=.75, maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[4] = _summarize(0, iouThr=.75, maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[5] = _summarize(2, iouThr=.75, maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[6] = _summarize(1, maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[7] = _summarize(0, maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[8] = _summarize(2, maxDets=self.params.maxDets[-1], write_handle=f)
+        f.write('\n')
+        f.close()
+        print('Successfully Write Result File...')
+
+        # for batter stored result file,create a dir to stored result,and it can be upload to github
+        assert os.path.isfile(os.path.join(args.work_dir, 'result.txt'))
+        out_dir = 'result'
+        os.makedirs(out_dir, exist_ok=True)
+        out_file_name = os.path.join(out_dir, '{}.txt'.format(bare_name))
+        shutil.copy(os.path.join(args.work_dir, 'result.txt'), out_file_name)
+        return stats
+
+    if len(self.params.iouThrs) == 1:
+        summarize = _summarizeDets
+    elif len(self.params.iouThrs) == 10:
+        summarize = _summarizeDets2
+    else:
+        raise ValueError('wrong iouThrs, please check set_param function')
     self.stats = summarize(args)
 
 
@@ -415,7 +460,8 @@ def set_param(self):
     ########################################################################################
     # 调用cocoeval时所需的参数
     p.maxDets = [100000]
-    p.iouThrs = np.array([0.5])
+    # p.iouThrs = np.array([0.5])
+    p.iouThrs = np.linspace(.5, 0.95, int(np.round((0.95 - .5) / .05)) + 1, endpoint=True)
     p.recThrs = np.linspace(.0, 1.00, int(np.round((1.00 - .0) / .01)) + 1, endpoint=True)
     p.scoceThrs = args.score
     p.areaRng = [[0 ** 2, 1e5 ** 2]]
@@ -427,9 +473,9 @@ def set_param(self):
 def parse_args():
     parser = argparse.ArgumentParser(description='MMDet test detector')
 
-    parser.add_argument('--work_dir', default='work_dirs/gl_ga_local')
+    parser.add_argument('--work_dir', default='work_dirs/mode1_anchor4')
     parser.add_argument('--score', default=0.3, type=float)
-    parser.add_argument('--show', default=True, type=bool)
+    parser.add_argument('--show', default=False, type=bool)
 
     parser.add_argument('--val_path', type=str, default='data/xview/annotations/instances_val2017.json')
     parser.add_argument('--eval', type=str, default='bbox', nargs='+',
@@ -440,10 +486,12 @@ def parse_args():
     parser.add_argument('--local_rank', type=int, default=0)
     args = parser.parse_args()
     bare_name = os.path.basename(args.work_dir)
-    if 'global' in bare_name:
+    if 'global' in bare_name or 'mode1' in bare_name:
         args.mode = 'global'
-    elif 'local' in bare_name:
+    elif 'local' in bare_name or 'mode2' in bare_name:
         args.mode = 'local'
+    elif 'mode3' in bare_name:
+        args.mode = 'global'
     else:
         raise ValueError('Wrong work_dir name')
     print('Start Evaluateing {} model'.format(bare_name))

@@ -14,7 +14,7 @@ except ImportError:
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector')
     parser.add_argument('--config', help='train config file path',
-                        default='cfgs_GL/gl_ga_global.py')
+                        default='configs/hrnet/faster_rcnn_hrnetv2p_w32_1x_coco.py')
     parser.add_argument(
         '--shape',
         type=int,
