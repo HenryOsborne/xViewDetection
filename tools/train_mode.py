@@ -21,7 +21,7 @@ from mmdet.utils import collect_env, get_root_logger
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector')
     parser.add_argument('config', help='train config file path')
-    parser.add_argument('--load-from', help='mode2 load from mode1')
+    parser.add_argument('--load-from', help='mode2 load from mode1,do not specific in mode3')
     parser.add_argument('--work-dir', help='the dir to save logs and models')
     parser.add_argument(
         '--resume-from', help='the checkpoint file to resume from')
@@ -89,7 +89,6 @@ def main():
 
     cfg = Config.fromfile(args.config)
 
-    work_dir = args.work_dir
     mode = cfg.model.mode
 
     if args.cfg_options is not None:
@@ -169,7 +168,8 @@ def main():
     if mode == 2:
         print("mode2 load state from mode1")
 
-        assert 'mode2' in work_dir
+        assert 'mode2' in args.work_dir
+        assert args.load_from is not None, 'In mode2, please specific mode1\'s work_dir in args.load_from'
         finished_path = args.load_from
         weight_path = os.path.join(finished_path, 'epoch_50.pth')
         assert os.path.isfile(weight_path), 'please run mode 1 first'
@@ -186,9 +186,8 @@ def main():
     elif mode == 3:
         print("mode3 load state from mode2")
 
-        assert 'mode3' in work_dir
-        finished_path = work_dir.replace('mode3', 'mode2')
-        weight_path = os.path.join(finished_path, 'epoch_50.pth')
+        assert 'mode3' in cfg.work_dir
+        weight_path = os.path.join(cfg.mode2_work_dir, 'epoch_50.pth')
         assert os.path.isfile(weight_path), 'please run mode 2 first'
         partial = torch.load(weight_path)
         partial_item = partial.get("state_dict")

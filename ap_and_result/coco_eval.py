@@ -335,7 +335,6 @@ def coco_summarize(self, args):
 
     def _summarizeDets(args):
         stats = np.zeros((3,))
-        # TODO：the result should write in work_dir name, not bare_name
         f = open(os.path.join(args.work_dir, 'result.txt'), 'a+')
         bare_name = os.path.basename(args.work_dir)
         f.write(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '\n')
@@ -479,7 +478,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='MMDet test detector')
 
     #####################################################################################################
-    parser.add_argument('--work_dir', default='work_dirs/mode1_anchor4')
+    parser.add_argument('--work_dir', default='work_dirs/mode2_8_8')
     # please point out work_dir in this place
     parser.add_argument('--score', default=0.3, type=float)
     # drop result if result's score small than args.score
@@ -509,8 +508,10 @@ def parse_args():
         raise ValueError('Wrong work_dir name')
     print('Start Evaluateing {} model'.format(bare_name))
 
-    # TODO:bare_name could different with work_dir name, config is the single (.py) file in work_dir
-    args.config = os.path.join(args.work_dir, '{}.py'.format(bare_name))
+    config_file = [i for i in os.listdir(args.work_dir) if i.endswith('.py')]
+    assert len(config_file) == 1, 'please ensure work_dir only have one config file'
+    config_file = config_file[0]
+    args.config = os.path.join(args.work_dir, config_file)
     args.checkpoint = os.path.join(args.work_dir, 'epoch_50.pth')
     args.ResFile = os.path.join(args.work_dir, 'ResFile.json')
     if args.show is True:

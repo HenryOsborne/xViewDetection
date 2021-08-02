@@ -205,5 +205,5 @@ dist_params = dict(backend='nccl')
 log_level = 'INFO'
 work_dir = './work_dirs/hrnet_local'
 load_from = None
-resume_from = None
+resume_from = './work_dirs/hrnet_local/epoch_10.pth'
 workflow = [('train', 1)]
