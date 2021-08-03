@@ -3,3 +3,14 @@
  Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.514
  Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.683
 
+2021-08-02 20:16:10
+ Average Precision  (AP) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.359
+ Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.514
+ Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.683
+ Average Precision  (AP) @[ IoU=0.75      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.078
+ Average Recall     (AR) @[ IoU=0.75      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.209
+ Precision          (PR) @[ IoU=0.75      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.335
+ Average Precision  (AP) @[ IoU=0.50:0.95 | Score= 0.3 | area=   all | maxDets=100000 ] = 0.140
+ Average Recall     (AR) @[ IoU=0.50:0.95 | Score= 0.3 | area=   all | maxDets=100000 ] = 0.247
+ Precision          (PR) @[ IoU=0.50:0.95 | Score= 0.3 | area=   all | maxDets=100000 ] = 0.357
+

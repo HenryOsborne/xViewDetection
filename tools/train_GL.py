@@ -182,6 +182,9 @@ def main():
 
         state.update(pretrained_dict)
         model.load_state_dict(state)
+
+
+
     elif mode == 3:
         print("mode3 load state from mode2")
 

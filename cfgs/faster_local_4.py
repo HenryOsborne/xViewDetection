@@ -2,7 +2,7 @@ img_scale = (3000, 3000)
 # model settings
 model = dict(
     type='LocalFasterRCNN',
-    pretrained='open-mmlab://msra/hrnetv2_w32',
+    pretrained='torchvision://resnet50',
     ##################################################################
     # param for split global images,
     # p_size : split size
@@ -12,49 +12,32 @@ model = dict(
     ori_shape=img_scale,
     ##################################################################
     backbone=dict(
-        type='HRNet',
-        extra=dict(
-            stage1=dict(
-                num_modules=1,
-                num_branches=1,
-                block='BOTTLENECK',
-                num_blocks=(4,),
-                num_channels=(64,)),
-            stage2=dict(
-                num_modules=1,
-                num_branches=2,
-                block='BASIC',
-                num_blocks=(4, 4),
-                num_channels=(32, 64)),
-            stage3=dict(
-                num_modules=4,
-                num_branches=3,
-                block='BASIC',
-                num_blocks=(4, 4, 4),
-                num_channels=(32, 64, 128)),
-            stage4=dict(
-                num_modules=3,
-                num_branches=4,
-                block='BASIC',
-                num_blocks=(4, 4, 4, 4),
-                num_channels=(32, 64, 128, 256)))),
-    neck=dict(type='HRFPN', in_channels=[32, 64, 128, 256], out_channels=256),
+        type='ResNet',
+        depth=50,
+        num_stages=4,
+        out_indices=(0, 1, 2, 3),
+        frozen_stages=1,
+        style='pytorch'),
+    neck=dict(
+        type='FPN',
+        in_channels=[256, 512, 1024, 2048],
+        out_channels=256,
+        num_outs=5),
     rpn_head=dict(
         type='RPNHead',
         in_channels=256,
         feat_channels=256,
+        ##################################################################
+        # in local mode ,anchor scales shoule be 8
         anchor_generator=dict(
             type='AnchorGenerator',
-            scales=[8],
+            scales=[4],
             ratios=[0.5, 1.0, 2.0],
             strides=[4, 8, 16, 32, 64]),
-        bbox_coder=dict(
-            type='DeltaXYWHBBoxCoder',
-            target_means=[0.0, 0.0, 0.0, 0.0],
-            target_stds=[1.0, 1.0, 1.0, 1.0]),
+        ##################################################################
         loss_cls=dict(
             type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
-        loss_bbox=dict(type='L1Loss', loss_weight=1.0)),
+        loss_bbox=dict(type='SmoothL1Loss', beta=1.0 / 9.0, loss_weight=1.0)),
     roi_head=dict(
         type='StandardRoIHead',
         bbox_roi_extractor=dict(
@@ -68,14 +51,11 @@ model = dict(
             fc_out_channels=1024,
             roi_feat_size=7,
             num_classes=1,
-            bbox_coder=dict(
-                type='DeltaXYWHBBoxCoder',
-                target_means=[0.0, 0.0, 0.0, 0.0],
-                target_stds=[0.1, 0.1, 0.2, 0.2]),
             reg_class_agnostic=False,
             loss_cls=dict(
                 type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0),
-            loss_bbox=dict(type='L1Loss', loss_weight=1.0))),
+            loss_bbox=dict(type='SmoothL1Loss', beta=1.0, loss_weight=1.0)),
+    ),
     train_cfg=dict(
         rpn=dict(
             assigner=dict(
@@ -203,7 +183,7 @@ evaluation = dict(interval=51, metric='bbox')
 runner = dict(type='EpochBasedRunner', max_epochs=50)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/hrnet_local'
+work_dir = './work_dirs/faster_local_4'
 load_from = None
 resume_from = None
 workflow = [('train', 1)]
