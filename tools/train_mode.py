@@ -171,7 +171,7 @@ def main():
         # assert 'mode2' in args.work_dir
         assert args.load_from is not None, 'In mode2, please specific mode1\'s work_dir in args.load_from'
         finished_path = args.load_from
-        weight_path = os.path.join(finished_path, 'epoch_50.pth')
+        weight_path = os.path.join(finished_path, 'latest.pth')
         assert os.path.isfile(weight_path), 'please run mode 1 first'
         partial = torch.load(weight_path)
         print('load model from {}'.format(weight_path))

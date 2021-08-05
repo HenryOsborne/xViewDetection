@@ -1,24 +1,20 @@
 img_scale = (800, 800)
-
-work_dir = './work_dirs/gl_ga_mode3_8_8_4'
-mode1_work_dir = './work_dirs/gl_ga_global_8'
-mode2_work_dir = './work_dirs/gl_ga_local_8_8'
-
-
+work_dir = './work_dirs/gl_ga_global_8_k1'
 # model settings
 model = dict(
     type='GlobalGLGA',
     pretrained='torchvision://resnet50',
     neck=dict(
-        type='GlNetNeck',
-        numClass=2,
-        mode1_work_dir=mode1_work_dir
+        type='GlNetNeckK1',
+        numClass=2
     ),
     ###############################################
+    # this three param is useless in mode 1
     p_size=(800, 800),
     batch_size=2,
-    mode=3,
     ori_shape=(3000, 3000),
+    ###############################################
+    mode=1,
     ###############################################
     rpn_head=dict(
         type='GARPNHead',
@@ -26,14 +22,14 @@ model = dict(
         feat_channels=256,
         approx_anchor_generator=dict(
             type='AnchorGenerator',
-            octave_base_scale=4,
+            octave_base_scale=8,
             scales_per_octave=3,
             ratios=[0.5, 1.0, 2.0],
             strides=[4, 8, 16, 32, 64]),
         square_anchor_generator=dict(
             type='AnchorGenerator',
             ratios=[1.0],
-            scales=[4],
+            scales=[8],
             strides=[4, 8, 16, 32, 64]),
         anchor_coder=dict(
             type='DeltaXYWHBBoxCoder',
@@ -205,7 +201,7 @@ lr_config = dict(
 checkpoint_config = dict(interval=10)
 # yapf:disable
 log_config = dict(
-    interval=10,
+    interval=50,
     hooks=[
         dict(type='TextLoggerHook'),
         dict(type='TensorboardLoggerHook')
@@ -217,5 +213,5 @@ runner = dict(type='EpochBasedRunner', max_epochs=50)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 load_from = None
-resume_from = None
+resume_from = 'work_dirs/gl_ga_global_8_k1/epoch_5.pth'
 workflow = [('train', 1)]

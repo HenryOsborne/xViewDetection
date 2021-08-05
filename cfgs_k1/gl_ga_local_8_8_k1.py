@@ -1,24 +1,17 @@
-img_scale = (800, 800)
-
-work_dir = './work_dirs/gl_ga_mode3_8_8_4'
-mode1_work_dir = './work_dirs/gl_ga_global_8'
-mode2_work_dir = './work_dirs/gl_ga_local_8_8'
-
-
+img_scale = (3000, 3000)
 # model settings
 model = dict(
-    type='GlobalGLGA',
+    type='LocalGLGA',
     pretrained='torchvision://resnet50',
     neck=dict(
-        type='GlNetNeck',
-        numClass=2,
-        mode1_work_dir=mode1_work_dir
+        type='GlNetNeckK1',
+        numClass=2
     ),
     ###############################################
     p_size=(800, 800),
     batch_size=2,
-    mode=3,
-    ori_shape=(3000, 3000),
+    mode=2,
+    ori_shape=img_scale,
     ###############################################
     rpn_head=dict(
         type='GARPNHead',
@@ -26,14 +19,14 @@ model = dict(
         feat_channels=256,
         approx_anchor_generator=dict(
             type='AnchorGenerator',
-            octave_base_scale=4,
+            octave_base_scale=8,
             scales_per_octave=3,
             ratios=[0.5, 1.0, 2.0],
             strides=[4, 8, 16, 32, 64]),
         square_anchor_generator=dict(
             type='AnchorGenerator',
             ratios=[1.0],
-            scales=[4],
+            scales=[8],
             strides=[4, 8, 16, 32, 64]),
         anchor_coder=dict(
             type='DeltaXYWHBBoxCoder',
@@ -105,9 +98,9 @@ model = dict(
             ignore_ratio=0.5,
             debug=False),
         rpn_proposal=dict(
-            nms_pre=10000,
-            nms_post=10000,
-            max_per_img=10000,
+            nms_pre=2000,
+            nms_post=2000,
+            max_per_img=2000,
             nms=dict(type='nms', iou_threshold=0.7),
             min_bbox_size=0),
         rcnn=dict(
@@ -127,16 +120,16 @@ model = dict(
             debug=False)),
     test_cfg=dict(
         rpn=dict(
-            nms_pre=10000,
-            nms_post=10000,
-            max_per_img=10000,
+            nms_pre=2000,
+            nms_post=2000,
+            max_per_img=2000,
             nms=dict(type='nms', iou_threshold=0.7),
             min_bbox_size=0),
         rcnn=dict(
             # score_thr=0.05, nms=dict(type='nms', iou_thr=0.2), max_per_img=3000)
             # score_thr=0.05, nms=dict(type='soft_nms', iou_thr=0.15, min_score=0.3) , max_per_img=2000)
             # score_thr=0.01, nms=dict(type='nms', iou_thr=0.1), max_per_img=2000)
-            score_thr=0.3, nms=dict(type='nms', iou_threshold=0.2), max_per_img=10000)
+            score_thr=0.3, nms=dict(type='nms', iou_threshold=0.2), max_per_img=2000)
         # soft-nms is also supported for rcnn testing
         # e.g., nms=dict(type='soft_nms', iou_thr=0.5, min_score=0.05)
     )
@@ -179,7 +172,7 @@ data = dict(
     workers_per_gpu=2,
     train=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/instances_train2017.json',
+        ann_file=data_root + 'annotations/train_local.json',
         img_prefix=data_root + 'images/',
         pipeline=train_pipeline),
     val=dict(
@@ -205,7 +198,7 @@ lr_config = dict(
 checkpoint_config = dict(interval=10)
 # yapf:disable
 log_config = dict(
-    interval=10,
+    interval=5,
     hooks=[
         dict(type='TextLoggerHook'),
         dict(type='TensorboardLoggerHook')
@@ -216,6 +209,7 @@ evaluation = dict(interval=51, metric='bbox')
 runner = dict(type='EpochBasedRunner', max_epochs=50)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
+work_dir = None
 load_from = None
 resume_from = None
 workflow = [('train', 1)]

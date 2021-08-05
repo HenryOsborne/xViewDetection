@@ -1,16 +1,16 @@
 img_scale = (800, 800)
-
-work_dir = './work_dirs/gl_ga_mode3_8_8_4'
-mode1_work_dir = './work_dirs/gl_ga_global_8'
-mode2_work_dir = './work_dirs/gl_ga_local_8_8'
-
-
+work_dir = './work_dirs/mode3_8_8_8'
+mode1_work_dir = './work_dirs/mode1_anchor8'
+mode2_work_dir = './work_dirs/mode2_8_8'
 # model settings
 model = dict(
     type='GlobalGLGA',
     pretrained='torchvision://resnet50',
+    ###############################################
+    # In mmdetection, num_class is original class's number
+    # But in GL net, num_class should add 1 at original class's number
     neck=dict(
-        type='GlNetNeck',
+        type='GlNetNeckK1',
         numClass=2,
         mode1_work_dir=mode1_work_dir
     ),
@@ -21,39 +21,17 @@ model = dict(
     ori_shape=(3000, 3000),
     ###############################################
     rpn_head=dict(
-        type='GARPNHead',
+        type='RPNHead',
         in_channels=256,
         feat_channels=256,
-        approx_anchor_generator=dict(
+        anchor_generator=dict(
             type='AnchorGenerator',
-            octave_base_scale=4,
-            scales_per_octave=3,
+            scales=[8],
             ratios=[0.5, 1.0, 2.0],
             strides=[4, 8, 16, 32, 64]),
-        square_anchor_generator=dict(
-            type='AnchorGenerator',
-            ratios=[1.0],
-            scales=[4],
-            strides=[4, 8, 16, 32, 64]),
-        anchor_coder=dict(
-            type='DeltaXYWHBBoxCoder',
-            target_means=[.0, .0, .0, .0],
-            target_stds=[0.07, 0.07, 0.14, 0.14]),
-        bbox_coder=dict(
-            type='DeltaXYWHBBoxCoder',
-            target_means=[.0, .0, .0, .0],
-            target_stds=[0.07, 0.07, 0.11, 0.11]),
-        loc_filter_thr=0.01,
-        loss_loc=dict(
-            type='FocalLoss',
-            use_sigmoid=True,
-            gamma=2.0,
-            alpha=0.25,
-            loss_weight=1.0),
-        loss_shape=dict(type='BoundedIoULoss', beta=0.2, loss_weight=1.0),
         loss_cls=dict(
             type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
-        loss_bbox=dict(type='SmoothL1Loss', beta=1.0, loss_weight=1.0)),
+        loss_bbox=dict(type='SmoothL1Loss', beta=1.0 / 9.0, loss_weight=1.0)),
     roi_head=dict(
         type='StandardRoIHead',
         bbox_roi_extractor=dict(
@@ -133,12 +111,7 @@ model = dict(
             nms=dict(type='nms', iou_threshold=0.7),
             min_bbox_size=0),
         rcnn=dict(
-            # score_thr=0.05, nms=dict(type='nms', iou_thr=0.2), max_per_img=3000)
-            # score_thr=0.05, nms=dict(type='soft_nms', iou_thr=0.15, min_score=0.3) , max_per_img=2000)
-            # score_thr=0.01, nms=dict(type='nms', iou_thr=0.1), max_per_img=2000)
             score_thr=0.3, nms=dict(type='nms', iou_threshold=0.2), max_per_img=10000)
-        # soft-nms is also supported for rcnn testing
-        # e.g., nms=dict(type='soft_nms', iou_thr=0.5, min_score=0.05)
     )
 )
 
@@ -202,10 +175,10 @@ lr_config = dict(
     warmup_iters=500,
     warmup_ratio=1.0 / 3,
     step=[45, 48])
-checkpoint_config = dict(interval=10)
+checkpoint_config = dict(interval=5)
 # yapf:disable
 log_config = dict(
-    interval=10,
+    interval=5,
     hooks=[
         dict(type='TextLoggerHook'),
         dict(type='TensorboardLoggerHook')
@@ -213,7 +186,7 @@ log_config = dict(
 # yapf:enable
 # runtime settings
 evaluation = dict(interval=51, metric='bbox')
-runner = dict(type='EpochBasedRunner', max_epochs=50)
+runner = dict(type='EpochBasedRunner', max_epochs=20)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 load_from = None

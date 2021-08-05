@@ -1,8 +1,8 @@
 img_scale = (800, 800)
 
-work_dir = './work_dirs/gl_ga_mode3_8_8_4'
-mode1_work_dir = './work_dirs/gl_ga_global_8'
-mode2_work_dir = './work_dirs/gl_ga_local_8_8'
+work_dir = './work_dirs/gl_ga_mode3_8_8_4_k1'
+mode1_work_dir = './work_dirs/gl_ga_global_8_k1'
+mode2_work_dir = './work_dirs/gl_ga_local_8_8_k1'
 
 
 # model settings
@@ -10,7 +10,7 @@ model = dict(
     type='GlobalGLGA',
     pretrained='torchvision://resnet50',
     neck=dict(
-        type='GlNetNeck',
+        type='GlNetNeckK1',
         numClass=2,
         mode1_work_dir=mode1_work_dir
     ),

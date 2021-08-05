@@ -18,13 +18,13 @@ class fpn_module_global(nn.Module):
         self.latlayer2 = nn.Conv2d(512, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
         self.latlayer3 = nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
         # Smooth layers
-        self.smooth1_1 = nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.smooth2_1 = nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.smooth3_1 = nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.smooth4_1 = nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.smooth1_2 = nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.smooth2_2 = nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
         #######################################################################################
+        self.smooth1_1 = nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+        self.smooth2_1 = nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+        self.smooth3_1 = nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+        self.smooth4_1 = nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+        self.smooth1_2 = nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
+        self.smooth2_2 = nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
         self.smooth3_2 = nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
         self.smooth4_2 = nn.Conv2d(256, 256, kernel_size=(1, 1), stride=(1, 1))
         #######################################################################################
@@ -140,14 +140,14 @@ class fpn_module_local(nn.Module):
         self.latlayer3 = nn.Conv2d(256 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
         # Smooth layers
         # ps0
-        self.smooth1_1 = nn.Conv2d(256 * self.fold, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.smooth2_1 = nn.Conv2d(256 * self.fold, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.smooth3_1 = nn.Conv2d(256 * self.fold, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.smooth4_1 = nn.Conv2d(256 * self.fold, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        # ps1
-        self.smooth1_2 = nn.Conv2d(256 * self.fold, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))  # 128
-        self.smooth2_2 = nn.Conv2d(256 * self.fold, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))  # 128
         ###################################################################################################
+        self.smooth1_1 = nn.Conv2d(256 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1))
+        self.smooth2_1 = nn.Conv2d(256 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1))
+        self.smooth3_1 = nn.Conv2d(256 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1))
+        self.smooth4_1 = nn.Conv2d(256 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1))
+        # ps1
+        self.smooth1_2 = nn.Conv2d(256 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1))  # 128
+        self.smooth2_2 = nn.Conv2d(256 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1))  # 128
         self.smooth3_2 = nn.Conv2d(256 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1))  # 128
         self.smooth4_2 = nn.Conv2d(256 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1))  # 128
         ###################################################################################################
