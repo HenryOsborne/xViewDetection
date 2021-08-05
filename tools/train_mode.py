@@ -168,7 +168,7 @@ def main():
     if mode == 2:
         print("mode2 load state from mode1")
 
-        assert 'mode2' in args.work_dir
+        # assert 'mode2' in args.work_dir
         assert args.load_from is not None, 'In mode2, please specific mode1\'s work_dir in args.load_from'
         finished_path = args.load_from
         weight_path = os.path.join(finished_path, 'epoch_50.pth')
@@ -186,7 +186,7 @@ def main():
     elif mode == 3:
         print("mode3 load state from mode2")
 
-        assert 'mode3' in cfg.work_dir
+        # assert 'mode3' in cfg.work_dir
         weight_path = os.path.join(cfg.mode2_work_dir, 'epoch_50.pth')
         assert os.path.isfile(weight_path), 'please run mode 2 first'
         partial = torch.load(weight_path)

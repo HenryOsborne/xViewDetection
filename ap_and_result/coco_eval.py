@@ -338,9 +338,9 @@ def coco_summarize(self, args):
         f = open(os.path.join(args.work_dir, 'result.txt'), 'a+')
         bare_name = os.path.basename(args.work_dir)
         f.write(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '\n')
-        stats[0] = _summarize(1, iouThr=.5, maxDets=self.params.maxDets[-1], write_handle=f) #AP
-        stats[1] = _summarize(0, iouThr=.5, maxDets=self.params.maxDets[-1], write_handle=f) #AR
-        stats[2] = _summarize(2, iouThr=.5, maxDets=self.params.maxDets[-1], write_handle=f) #PR
+        stats[0] = _summarize(1, iouThr=.5, maxDets=self.params.maxDets[-1], write_handle=f)  # AP
+        stats[1] = _summarize(0, iouThr=.5, maxDets=self.params.maxDets[-1], write_handle=f)  # AR
+        stats[2] = _summarize(2, iouThr=.5, maxDets=self.params.maxDets[-1], write_handle=f)  # PR
         f.write('\n')
         f.close()
         print('Successfully Write Result File...')
@@ -478,7 +478,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='MMDet test detector')
 
     #####################################################################################################
-    parser.add_argument('--work_dir', default='work_dirs/faster_local_4')
+    parser.add_argument('--work_dir', default='work_dirs/gl_ga_mode3_8_8_4')
     # please point out work_dir in this place
     parser.add_argument('--score', default=0.3, type=float)
     # drop result if result's score small than args.score

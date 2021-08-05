@@ -4,7 +4,7 @@ model = dict(
     type='LocalGLGA',
     pretrained='torchvision://resnet50',
     neck=dict(
-        type='GLNET_fpn',
+        type='GlNetNeck',
         numClass=2
     ),
     ###############################################

@@ -1,13 +1,15 @@
 img_scale = (800, 800)
 work_dir = './work_dirs/gl_ga_mode3'
+mode1_work_dir = './work_dirs/gl_ga_global'
+mode2_work_dir = './work_dirs/gl_ga_local'
 # model settings
 model = dict(
     type='GlobalGLGA',
     pretrained='torchvision://resnet50',
     neck=dict(
-        type='GLNET_fpn',
+        type='GlNetNeck',
         numClass=2,
-        work_dir=work_dir
+        mode1_work_dir=mode1_work_dir
     ),
     ###############################################
     p_size=(800, 800),
@@ -197,7 +199,7 @@ lr_config = dict(
     warmup_iters=500,
     warmup_ratio=1.0 / 3,
     step=[45, 48])
-checkpoint_config = dict(interval=5)
+checkpoint_config = dict(interval=10)
 # yapf:disable
 log_config = dict(
     interval=5,
@@ -212,5 +214,5 @@ runner = dict(type='EpochBasedRunner', max_epochs=50)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 load_from = None
-resume_from = 'work_dirs/gl_ga_mode3/epoch_10.pth'
+resume_from = None
 workflow = [('train', 1)]

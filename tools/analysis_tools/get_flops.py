@@ -14,12 +14,12 @@ except ImportError:
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector')
     parser.add_argument('--config', help='train config file path',
-                        default='configs/hrnet/faster_rcnn_hrnetv2p_w18_1x_coco.py')
+                        default='cfgs_anchor/mode2_anchor4.py')
     parser.add_argument(
         '--shape',
         type=int,
         nargs='+',
-        default=[800, 800],
+        default=[3000, 3000],
         help='input image size')
     parser.add_argument(
         '--cfg-options',
