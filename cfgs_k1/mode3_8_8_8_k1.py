@@ -1,7 +1,7 @@
 img_scale = (800, 800)
-work_dir = './work_dirs/mode3_8_8_8'
-mode1_work_dir = './work_dirs/mode1_anchor8'
-mode2_work_dir = './work_dirs/mode2_8_8'
+work_dir = './work_dirs/mode3_8_8_8_k1'
+mode1_work_dir = './work_dirs/mode1_anchor8_k1'
+mode2_work_dir = './work_dirs/mode2_8_8_k1'
 # model settings
 model = dict(
     type='GlobalGLGA',

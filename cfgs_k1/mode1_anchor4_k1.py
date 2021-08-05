@@ -171,7 +171,7 @@ evaluation = dict(interval=51, metric='bbox')
 runner = dict(type='EpochBasedRunner', max_epochs=50)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/mode1_anchor4'
+work_dir = './work_dirs/mode1_anchor4_k1'
 load_from = None
 resume_from = None
 workflow = [('train', 1)]
