@@ -112,14 +112,19 @@ model = dict(
     test_cfg=dict(
         rpn=dict(
             nms_pre=2000,
-            nms_post=2000,
-            max_per_img=2000,
+            nms_post=1000,
+            max_per_img=1000,
             nms=dict(type='nms', iou_threshold=0.7),
             min_bbox_size=0),
         rcnn=dict(
-            # score_thr=0.05, nms=dict(type='nms', iou_thr=0.5), max_per_img=100)
-            # score_thr=0.05, nms=dict(type='soft_nms', iou_thr=0.15, min_score=0.3) , max_per_img=2000)
-            score_thr=0.3, nms=dict(type='soft_nms', iou_threshold=0.2, min_score=0.3), max_per_img=2000)
+            score_thr=0.3, nms=dict(type='nms', iou_threshold=0.2), max_per_img=1000)
+
+        # rcnn=dict(
+        #     # score_thr=0.05, nms=dict(type='nms', iou_thr=0.5), max_per_img=100)
+        #     # score_thr=0.05, nms=dict(type='soft_nms', iou_thr=0.15, min_score=0.3) , max_per_img=2000)
+        #     score_thr=0.3, nms=dict(type='soft_nms', iou_threshold=0.2, min_score=0.3), max_per_img=2000)
+
+
         # soft-nms is also supported for rcnn testing
         # e.g., nms=dict(type='soft_nms', iou_thr=0.5, min_score=0.05)
     )
@@ -183,7 +188,7 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=500,
     warmup_ratio=1.0 / 3,
-    step=[45, 48])
+    step=[25, 28])
 checkpoint_config = dict(interval=25)
 # yapf:disable
 log_config = dict(
@@ -195,7 +200,7 @@ log_config = dict(
 # yapf:enable
 # runtime settings
 evaluation = dict(interval=51, metric='bbox')
-runner = dict(type='EpochBasedRunner', max_epochs=50)
+runner = dict(type='EpochBasedRunner', max_epochs=30)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 work_dir = './work_dirs/libra_local'

@@ -113,6 +113,15 @@ class GLTwoStage(BaseDetector):
             input_img = torch.zeros(1, 3, self.ori_shape[0], self.ori_shape[1])
             patches, coordinates, templates, sizes, ratios = self.global_to_patch(input_img,self.p_size)
             x = self.neck(img, patches, coordinates, ratios, templates, mode=self.MODE)
+        elif self.MODE == 4:
+            patches, coordinates, templates, sizes, ratios = self.global_to_patch(img, self.p_size)
+            input_img = patches[0][0].unsqueeze(0)
+            input_patch = patches[0][0].unsqueeze(0)
+            i_patch = 0
+            batch_size = 2
+            x = self.neck(input_img, input_patch,
+                          coordinates[0][i_patch: i_patch + 1], ratios[0], templates[0],
+                          mode=self.MODE, n_patch=batch_size, i_patch=i_patch, )
         else:
             raise ValueError('wrong mode:{}'.format(self.MODE))
         # rpn

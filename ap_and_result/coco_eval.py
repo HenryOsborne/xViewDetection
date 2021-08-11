@@ -478,13 +478,13 @@ def parse_args():
     parser = argparse.ArgumentParser(description='MMDet test detector')
 
     #####################################################################################################
-    parser.add_argument('--work_dir', default='work_dirs/gl_ga_mode3_8_8_4')
+    parser.add_argument('--work_dir', default='work_dirs/htc_local')
     # please point out work_dir in this place
     parser.add_argument('--score', default=0.3, type=float)
     # drop result if result's score small than args.score
     parser.add_argument('--show', default=False, type=bool)
     # whether to draw pred box to img
-    parser.add_argument('--eval_mode', choices=['single', 'multiple'], type=str, default='multiple')
+    parser.add_argument('--eval_mode', choices=['single', 'multiple'], type=str, default='single')
     # if eval_mode is single, only eval iouThr=0.5
     # else if eval_mode is multiple, eval iouThr from 0.5 to 0.95
     #####################################################################################################
@@ -512,7 +512,7 @@ def parse_args():
     assert len(config_file) == 1, 'please ensure work_dir only have one config file'
     config_file = config_file[0]
     args.config = os.path.join(args.work_dir, config_file)
-    args.checkpoint = os.path.join(args.work_dir, 'epoch_50.pth')
+    args.checkpoint = os.path.join(args.work_dir, 'epoch_30.pth')
     args.ResFile = os.path.join(args.work_dir, 'ResFile.json')
     if args.show is True:
         args.outdir = os.path.join(args.work_dir, 'out')

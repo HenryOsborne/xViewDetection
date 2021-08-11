@@ -37,6 +37,8 @@ from .global_gl_ga import GlobalGLGA
 from .two_stage_local import TwoStageDetectorLocal
 from .local_cascade import LocalCascadeRCNN
 from .local_gl_ga import LocalGLGA
+from .local_htc import LocalHybridTaskCascade
+from .local_trident import LocalTridentFasterRCNN
 
 __all__ = [
     'ATSS', 'BaseDetector', 'SingleStageDetector',
@@ -47,5 +49,5 @@ __all__ = [
     'YOLOV3', 'YOLACT', 'VFNet', 'DETR', 'TridentFasterRCNN', 'SparseRCNN',
     'SCNet', 'LocalLibra', 'LocalFasterRCNN',
     'LocalSparseRCNN', 'LocalDynamic', 'GlobalGLGA', 'GLTwoStage', 'TwoStageDetectorLocal',
-    'LocalCascadeRCNN', 'LocalGLGA'
+    'LocalCascadeRCNN', 'LocalGLGA', 'LocalHybridTaskCascade', 'LocalTridentFasterRCNN'
 ]

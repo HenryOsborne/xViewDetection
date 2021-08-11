@@ -213,5 +213,5 @@ runner = dict(type='EpochBasedRunner', max_epochs=50)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 load_from = None
-resume_from = 'work_dirs/gl_ga_global_8_k1/epoch_5.pth'
+resume_from = None
 workflow = [('train', 1)]

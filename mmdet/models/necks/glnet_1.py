@@ -36,15 +36,25 @@ class fpn_module_global(nn.Module):
         self.latlayer2_ext = nn.Conv2d(512 * 2, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
         self.latlayer3_ext = nn.Conv2d(256 * 2, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
         # Smooth layers
-        self.smooth1_1_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.smooth2_1_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.smooth3_1_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.smooth4_1_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.smooth1_2_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.smooth2_2_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.smooth3_2_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.smooth4_2_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        ###########################################################################################
+        # self.smooth1_1_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        # self.smooth2_1_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        # self.smooth3_1_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        # self.smooth4_1_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        # self.smooth1_2_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        # self.smooth2_2_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        # self.smooth3_2_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        # self.smooth4_2_ext = nn.Conv2d(256 * 2, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
         # self.smooth = nn.Conv2d(128 * 4 * 2, 128 * 4, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        ###########################################################################################
+        self.smooth1_1_ext = nn.Conv2d(256 * 2, 256, kernel_size=(1, 1), stride=(1, 1))
+        self.smooth2_1_ext = nn.Conv2d(256 * 2, 256, kernel_size=(1, 1), stride=(1, 1))
+        self.smooth3_1_ext = nn.Conv2d(256 * 2, 256, kernel_size=(1, 1), stride=(1, 1))
+        self.smooth4_1_ext = nn.Conv2d(256 * 2, 256, kernel_size=(1, 1), stride=(1, 1))
+        self.smooth1_2_ext = nn.Conv2d(256 * 2, 256, kernel_size=(1, 1), stride=(1, 1))
+        self.smooth2_2_ext = nn.Conv2d(256 * 2, 256, kernel_size=(1, 1), stride=(1, 1))
+        self.smooth3_2_ext = nn.Conv2d(256 * 2, 256, kernel_size=(1, 1), stride=(1, 1))
+        self.smooth4_2_ext = nn.Conv2d(256 * 2, 256, kernel_size=(1, 1), stride=(1, 1))
 
     def _concatenate(self, p5, p4, p3, p2):
         _, _, H, W = p2.size()
@@ -153,7 +163,7 @@ class fpn_module_local(nn.Module):
         ###################################################################################################
         # ps2 is concatenation
         # Classify layers
-        self.smooth = nn.Conv2d(128 * 4 * self.fold * 2, 128 * 4, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.smooth = nn.Conv2d(128 * 4 * self.fold * 2, 128 * 4, kernel_size=(1, 1), stride=(1, 1))
         self.classify = nn.Conv2d(128 * 4, numClass, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
 
         self.toplayer_local = nn.Conv2d(2048 * self.local_flod, 256, kernel_size=(1, 1), stride=(1, 1),
@@ -164,19 +174,15 @@ class fpn_module_local(nn.Module):
         self.latlayer3_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
         # Smooth layers
         # ps0
-        self.smooth1_1_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.smooth2_1_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.smooth3_1_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-        self.smooth4_1_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+        self.smooth1_1_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
+        self.smooth2_1_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
+        self.smooth3_1_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
+        self.smooth4_1_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
         # ps1
-        self.smooth1_2_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(3, 3), stride=(1, 1),
-                                         padding=(1, 1))  # 128
-        self.smooth2_2_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(3, 3), stride=(1, 1),
-                                         padding=(1, 1))  # 128
-        self.smooth3_2_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(3, 3), stride=(1, 1),
-                                         padding=(1, 1))  # 128
-        self.smooth4_2_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(3, 3), stride=(1, 1),
-                                         padding=(1, 1))  # 128
+        self.smooth1_2_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(1, 1), stride=(1, 1))  # 128
+        self.smooth2_2_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(1, 1), stride=(1, 1))  # 128
+        self.smooth3_2_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(1, 1), stride=(1, 1))  # 128
+        self.smooth4_2_local = nn.Conv2d(256 * self.local_flod, 256, kernel_size=(1, 1), stride=(1, 1))  # 128
 
     def _concatenate(self, p5, p4, p3, p2):
         # print("p2.size().. " , p2.size())
@@ -702,7 +708,7 @@ class GlNetNeckK1(nn.Module):  # smooth4_1 and smooth4_2 kernel size = 1
             return result
 
         elif mode == 3:
-            assert 'mode1' in self.mode1_work_dir, 'please check config file->model->neck->mode1_work_dir'
+            # assert 'mode1' in self.mode1_work_dir, 'please check config file->model->neck->mode1_work_dir'
             weight_path = os.path.join(self.mode1_work_dir, 'epoch_50.pth')
             assert os.path.isfile(weight_path), 'please run mode1 first'
 

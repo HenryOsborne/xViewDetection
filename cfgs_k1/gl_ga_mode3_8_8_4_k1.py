@@ -213,7 +213,7 @@ log_config = dict(
 # yapf:enable
 # runtime settings
 evaluation = dict(interval=51, metric='bbox')
-runner = dict(type='EpochBasedRunner', max_epochs=50)
+runner = dict(type='EpochBasedRunner', max_epochs=20)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 load_from = None
