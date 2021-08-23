@@ -1,36 +1,44 @@
 img_scale = (3000, 3000)
 # model settings
 model = dict(
-    type="LocalLibra",
-    pretrained='torchvision://resnet50',
-    #####################################
+    type='LocalFasterRCNN',
+    pretrained='open-mmlab://msra/hrnetv2_w40',
+    ##################################################################
     # param for split global images,
     # p_size : split size
     # batch_size : seleted splited images for train
     p_size=(800, 800),
     batch_size=2,
     ori_shape=img_scale,
-    #####################################
+    ##################################################################
     backbone=dict(
-        type='ResNet',
-        depth=50,
-        num_stages=4,
-        out_indices=(0, 1, 2, 3),
-        frozen_stages=1,
-        style='pytorch'),
-    neck=[
-        dict(
-            type='FPN',
-            in_channels=[256, 512, 1024, 2048],
-            out_channels=256,
-            num_outs=5),
-        dict(
-            type='BFP',
-            in_channels=256,
-            num_levels=5,
-            refine_level=2,
-            refine_type='non_local')
-    ],
+        type='HRNet',
+        extra=dict(
+            stage1=dict(
+                num_modules=1,
+                num_branches=1,
+                block='BOTTLENECK',
+                num_blocks=(4,),
+                num_channels=(64,)),
+            stage2=dict(
+                num_modules=1,
+                num_branches=2,
+                block='BASIC',
+                num_blocks=(4, 4),
+                num_channels=(40, 80)),
+            stage3=dict(
+                num_modules=4,
+                num_branches=3,
+                block='BASIC',
+                num_blocks=(4, 4, 4),
+                num_channels=(40, 80, 160)),
+            stage4=dict(
+                num_modules=3,
+                num_branches=4,
+                block='BASIC',
+                num_blocks=(4, 4, 4, 4),
+                num_channels=(40, 80, 160, 320)))),
+    neck=dict(type='HRFPN', in_channels=[40, 80, 160, 320], out_channels=256),
     rpn_head=dict(
         type='RPNHead',
         in_channels=256,
@@ -40,9 +48,13 @@ model = dict(
             scales=[8],
             ratios=[0.5, 1.0, 2.0],
             strides=[4, 8, 16, 32, 64]),
+        bbox_coder=dict(
+            type='DeltaXYWHBBoxCoder',
+            target_means=[0.0, 0.0, 0.0, 0.0],
+            target_stds=[1.0, 1.0, 1.0, 1.0]),
         loss_cls=dict(
             type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
-        loss_bbox=dict(type='SmoothL1Loss', beta=1.0 / 9.0, loss_weight=1.0)),
+        loss_bbox=dict(type='L1Loss', loss_weight=1.0)),
     roi_head=dict(
         type='StandardRoIHead',
         bbox_roi_extractor=dict(
@@ -56,16 +68,14 @@ model = dict(
             fc_out_channels=1024,
             roi_feat_size=7,
             num_classes=1,
+            bbox_coder=dict(
+                type='DeltaXYWHBBoxCoder',
+                target_means=[0.0, 0.0, 0.0, 0.0],
+                target_stds=[0.1, 0.1, 0.2, 0.2]),
             reg_class_agnostic=False,
             loss_cls=dict(
                 type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0),
-            loss_bbox=dict(
-                type='BalancedL1Loss',
-                alpha=0.5,
-                gamma=1.5,
-                beta=1.0,
-                loss_weight=1.0)),
-    ),
+            loss_bbox=dict(type='L1Loss', loss_weight=1.0))),
     train_cfg=dict(
         rpn=dict(
             assigner=dict(
@@ -83,12 +93,14 @@ model = dict(
             allowed_border=0,
             pos_weight=-1,
             debug=False),
+        ##################################################################
         rpn_proposal=dict(
             nms_pre=2000,
             nms_post=2000,
             max_per_img=2000,
             nms=dict(type='nms', iou_threshold=0.7),
             min_bbox_size=0),
+        ##################################################################
         rcnn=dict(
             assigner=dict(
                 type='MaxIoUAssigner',
@@ -97,36 +109,24 @@ model = dict(
                 min_pos_iou=0.6,
                 ignore_iof_thr=-1),
             sampler=dict(
-                type='CombinedSampler',
+                type='RandomSampler',
                 num=512,
                 pos_fraction=0.25,
-                add_gt_as_proposals=True,
-                pos_sampler=dict(type='InstanceBalancedPosSampler'),
-                neg_sampler=dict(
-                    type='IoUBalancedNegSampler',
-                    floor_thr=-1,
-                    floor_fraction=0,
-                    num_bins=3)),
+                neg_pos_ub=-1,
+                add_gt_as_proposals=True),
             pos_weight=-1,
             debug=False)),
     test_cfg=dict(
+        ##################################################################
         rpn=dict(
             nms_pre=2000,
-            nms_post=1000,
-            max_per_img=1000,
+            nms_post=2000,
+            max_per_img=2000,
             nms=dict(type='nms', iou_threshold=0.7),
             min_bbox_size=0),
+        ##################################################################
         rcnn=dict(
-            score_thr=0.3, nms=dict(type='nms', iou_threshold=0.2), max_per_img=1000)
-
-        # rcnn=dict(
-        #     # score_thr=0.05, nms=dict(type='nms', iou_thr=0.5), max_per_img=100)
-        #     # score_thr=0.05, nms=dict(type='soft_nms', iou_thr=0.15, min_score=0.3) , max_per_img=2000)
-        #     score_thr=0.3, nms=dict(type='soft_nms', iou_threshold=0.2, min_score=0.3), max_per_img=2000)
-
-
-        # soft-nms is also supported for rcnn testing
-        # e.g., nms=dict(type='soft_nms', iou_thr=0.5, min_score=0.05)
+            score_thr=0.3, nms=dict(type='nms', iou_threshold=0.2), max_per_img=2000)
     )
 )
 # model training and testing settings
@@ -166,7 +166,7 @@ data = dict(
     workers_per_gpu=2,
     train=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/train_local.json',  # instances_train2017.json',
+        ann_file=data_root + 'annotations/train_local.json',
         img_prefix=data_root + 'images/',
         pipeline=train_pipeline),
     val=dict(
@@ -188,7 +188,7 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=500,
     warmup_ratio=1.0 / 3,
-    step=[45, 48])
+    step=[25, 28])  # step=[45, 48])
 checkpoint_config = dict(interval=10)
 # yapf:disable
 log_config = dict(
@@ -199,11 +199,11 @@ log_config = dict(
     ])
 # yapf:enable
 # runtime settings
-evaluation = dict(interval=51, metric='bbox')
-runner = dict(type='EpochBasedRunner', max_epochs=50)
+evaluation = dict(interval=31, metric='bbox')
+runner = dict(type='EpochBasedRunner', max_epochs=30)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/libra_local'
+work_dir = './work_dirs/hrnet_local'
 load_from = None
-resume_from = './work_dirs/libra_local/epoch_30.pth'
+resume_from = None
 workflow = [('train', 1)]

@@ -14,7 +14,7 @@ except ImportError:
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector')
     parser.add_argument('--config', help='train config file path',
-                        default='cfgs_k1/gl_ga_global_8_k1.py')
+                        default='cfgs/libra_global.py')
     parser.add_argument(
         '--shape',
         type=int,

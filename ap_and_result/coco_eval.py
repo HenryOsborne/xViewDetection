@@ -46,20 +46,46 @@ def computeIoU(self, imgId, catId):
 
 def evaluateImg(self, imgId, catId, aRng, score, prog_bar):
     p = self.params
+    gts = self.cocoGt
+    images = gts.imgs
+    img_width = images[imgId]['width']
+    img_height = images[imgId]['height']
+
     if p.useCats:
         gt = self._gts[imgId, catId]
+
         dt = self._dts[imgId, catId]
     else:
         gt = [_ for cId in p.catIds for _ in self._gts[imgId, cId]]
         dt = [_ for cId in p.catIds for _ in self._dts[imgId, cId]]
     if len(gt) == 0 and len(dt) == 0:
         return None
-
+    ############################################################################
+    # for g in gt:
+    #     bbox_width = g['bbox'][2]
+    #     bbox_heigth = g['bbox'][3]
+    #
+    #     if args.mode == 'global':
+    #         resized_width = bbox_width * (800 / img_width)
+    #         resized_heigth = bbox_heigth * (800 / img_height)
+    #     elif args.mode == 'local':
+    #         resized_width = bbox_width * (3000 / img_width)
+    #         resized_heigth = bbox_heigth * (3000 / img_height)
+    #     else:
+    #         raise ValueError('Wrong mode')
+    #     resized_area = resized_width * resized_heigth
+    #
+    #     if g['ignore'] or (resized_area < aRng[0] or resized_area > aRng[1]):
+    #         g['_ignore'] = 1
+    #     else:
+    #         g['_ignore'] = 0
+    # ############################################################################
     for g in gt:
         if g['ignore'] or (g['area'] < aRng[0] or g['area'] > aRng[1]):
             g['_ignore'] = 1
         else:
             g['_ignore'] = 0
+    # ############################################################################
 
     # sort dt highest score first, sort gt ignore last
     gtind = np.argsort([g['_ignore'] for g in gt], kind='mergesort')
@@ -148,9 +174,12 @@ def coco_evaluate(self):
                  for imgId in p.imgIds
                  for catId in catIds}
 
-    prog_bar = mmcv.ProgressBar(len(self.params.imgIds))
-    self.evalImgs = [evaluateImg(self, imgId, catId, p.areaRng[0], p.scoceThrs, prog_bar)
+    ######################################################################################
+    prog_bar = mmcv.ProgressBar(len(self.params.imgIds) * len(self.params.areaRng))
+    ######################################################################################
+    self.evalImgs = [evaluateImg(self, imgId, catId, areaRng, p.scoceThrs, prog_bar)
                      for catId in catIds
+                     for areaRng in p.areaRng
                      for imgId in p.imgIds
                      ]
     self._paramsEval = copy.deepcopy(self.params)
@@ -314,13 +343,13 @@ def coco_summarize(self, args):
             s = self.eval['Pr']
             if iouThr is not None:
                 t = np.where(iouThr == p.iouThrs)[0]
-                # mean_s = s[t[0]]
-                s = s[t[0]]
+                ##################################################
+                idx = aind[0] * len(p.iouThrs) + t[0]
+                ##################################################
+                s = s[idx]
             else:
-                # mean_s = np.mean(s)
                 pass
 
-        # if ap != 2:
         if isinstance(s, list):  # for ap==2 ,to get average precision
             mean_s = np.mean(s)
         else:
@@ -379,12 +408,98 @@ def coco_summarize(self, args):
         shutil.copy(os.path.join(args.work_dir, 'result.txt'), out_file_name)
         return stats
 
-    if len(self.params.iouThrs) == 1:
+    def _summarizeDets3(args):
+        stats = np.zeros((12,))
+        f = open(os.path.join(args.work_dir, 'result.txt'), 'a+')
+        bare_name = os.path.basename(args.work_dir)
+        f.write(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '\n')
+        stats[0] = _summarize(1, iouThr=.5, maxDets=self.params.maxDets[-1], write_handle=f)  # AP
+        stats[1] = _summarize(0, iouThr=.5, maxDets=self.params.maxDets[-1], write_handle=f)  # AR
+        stats[2] = _summarize(2, iouThr=.5, maxDets=self.params.maxDets[-1], write_handle=f)  # PR
+        stats[3] = _summarize(1, iouThr=.5, areaRng='small', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[4] = _summarize(0, iouThr=.5, areaRng='small', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[5] = _summarize(2, iouThr=.5, areaRng='small', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[6] = _summarize(1, iouThr=.5, areaRng='medium', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[7] = _summarize(0, iouThr=.5, areaRng='medium', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[8] = _summarize(2, iouThr=.5, areaRng='medium', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[9] = _summarize(1, iouThr=.5, areaRng='large', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[10] = _summarize(0, iouThr=.5, areaRng='large', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[11] = _summarize(2, iouThr=.5, areaRng='large', maxDets=self.params.maxDets[-1], write_handle=f)
+        f.write('\n')
+        f.close()
+        print('Successfully Write Result File...')
+
+        # for batter stored result file,create a dir to stored result,and it can be upload to github
+        assert os.path.isfile(os.path.join(args.work_dir, 'result.txt'))
+        out_dir = 'result'
+        os.makedirs(out_dir, exist_ok=True)
+        out_file_name = os.path.join(out_dir, '{}.txt'.format(bare_name))
+        shutil.copy(os.path.join(args.work_dir, 'result.txt'), out_file_name)
+        return stats
+
+    def _summarizeDets4(args):
+        stats = np.zeros((36,))
+        f = open(os.path.join(args.work_dir, 'result.txt'), 'a+')
+        bare_name = os.path.basename(args.work_dir)
+        f.write(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + '\n')
+        stats[0] = _summarize(1, iouThr=.5, maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[1] = _summarize(0, iouThr=.5, maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[2] = _summarize(2, iouThr=.5, maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[3] = _summarize(1, iouThr=.5, areaRng='small', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[4] = _summarize(0, iouThr=.5, areaRng='small', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[5] = _summarize(2, iouThr=.5, areaRng='small', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[6] = _summarize(1, iouThr=.5, areaRng='medium', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[7] = _summarize(0, iouThr=.5, areaRng='medium', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[8] = _summarize(2, iouThr=.5, areaRng='medium', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[9] = _summarize(1, iouThr=.5, areaRng='large', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[10] = _summarize(0, iouThr=.5, areaRng='large', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[11] = _summarize(2, iouThr=.5, areaRng='large', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[12] = _summarize(1, iouThr=.75, maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[13] = _summarize(0, iouThr=.75, maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[14] = _summarize(2, iouThr=.75, maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[15] = _summarize(1, iouThr=.75, areaRng='small', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[16] = _summarize(0, iouThr=.75, areaRng='small', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[17] = _summarize(2, iouThr=.75, areaRng='small', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[18] = _summarize(1, iouThr=.75, areaRng='medium', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[19] = _summarize(0, iouThr=.75, areaRng='medium', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[20] = _summarize(2, iouThr=.75, areaRng='medium', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[21] = _summarize(1, iouThr=.75, areaRng='large', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[22] = _summarize(0, iouThr=.75, areaRng='large', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[23] = _summarize(2, iouThr=.75, areaRng='large', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[24] = _summarize(1, maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[25] = _summarize(0, maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[26] = _summarize(2, maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[27] = _summarize(1, areaRng='small', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[28] = _summarize(0, areaRng='small', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[29] = _summarize(2, areaRng='small', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[30] = _summarize(1, areaRng='medium', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[31] = _summarize(0, areaRng='medium', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[32] = _summarize(2, areaRng='medium', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[33] = _summarize(1, areaRng='large', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[34] = _summarize(0, areaRng='large', maxDets=self.params.maxDets[-1], write_handle=f)
+        stats[35] = _summarize(2, areaRng='large', maxDets=self.params.maxDets[-1], write_handle=f)
+        f.write('\n')
+        f.close()
+        print('Successfully Write Result File...')
+
+        # for batter stored result file,create a dir to stored result,and it can be upload to github
+        assert os.path.isfile(os.path.join(args.work_dir, 'result.txt'))
+        out_dir = 'result'
+        os.makedirs(out_dir, exist_ok=True)
+        out_file_name = os.path.join(out_dir, '{}.txt'.format(bare_name))
+        shutil.copy(os.path.join(args.work_dir, 'result.txt'), out_file_name)
+        return stats
+
+    if len(self.params.iouThrs) == 1 and len(self.params.areaRng) == 1:
         summarize = _summarizeDets
-    elif len(self.params.iouThrs) == 10:
+    elif len(self.params.iouThrs) == 10 and len(self.params.areaRng) == 1:
         summarize = _summarizeDets2
+    elif len(self.params.iouThrs) == 1 and len(self.params.areaRng) == 4:
+        summarize = _summarizeDets3
+    elif len(self.params.iouThrs) == 10 and len(self.params.areaRng) == 4:
+        summarize = _summarizeDets4
     else:
-        raise ValueError('wrong iouThrs, please check set_param function')
+        raise ValueError('wrong param, please check set_param function')
     self.stats = summarize(args)
 
 
@@ -408,10 +523,10 @@ def det2json(dataset, results, mode):
             imgInfo = dataset.data_infos[idx]
             width = imgInfo['width']
             height = imgInfo['height']
-            result[:, 0] = result[:, 0] * (width / 3000)
-            result[:, 1] = result[:, 1] * (height / 3000)
-            result[:, 2] = result[:, 2] * (width / 3000)
-            result[:, 3] = result[:, 3] * (height / 3000)
+            result[:, 0] = result[:, 0] * (width / args.resize_width)
+            result[:, 1] = result[:, 1] * (height / args.resize_height)
+            result[:, 2] = result[:, 2] * (width / args.resize_width)
+            result[:, 3] = result[:, 3] * (height / args.resize_height)
             for i in result:
                 data = dict()
                 data['image_id'] = img_id
@@ -460,15 +575,20 @@ def set_param(self):
     ########################################################################################
     # 调用cocoeval时所需的参数
     p.maxDets = [100000]
-    if args.eval_mode == 'single':
+    if args.iou_mode == 'single':
         p.iouThrs = np.array([0.5])
-    elif args.eval_mode == 'multiple':
+    elif args.iou_mode == 'multiple':
         p.iouThrs = np.linspace(.5, 0.95, int(np.round((0.95 - .5) / .05)) + 1, endpoint=True)
     else:
-        raise ValueError('wrong eval_mode')
+        raise ValueError('wrong iou_mode')
     p.recThrs = np.linspace(.0, 1.00, int(np.round((1.00 - .0) / .01)) + 1, endpoint=True)
     p.scoceThrs = args.score
-    p.areaRng = [[0 ** 2, 1e5 ** 2]]
+    if args.area_mode == 'single':
+        p.areaRng = [[0 ** 2, 1e5 ** 2]]
+    elif args.area_mode == 'multiple':
+        p.areaRng = [[0 ** 2, 1e5 ** 2], [0 ** 2, 32 ** 2], [32 ** 2, 96 ** 2], [96 ** 2, 1e5 ** 2]]
+    else:
+        raise ValueError('wrong area_mode')
     ########################################################################################
 
     self.params = p
@@ -478,16 +598,23 @@ def parse_args():
     parser = argparse.ArgumentParser(description='MMDet test detector')
 
     #####################################################################################################
-    parser.add_argument('--work_dir', default='work_dirs/htc_local')
+    parser.add_argument('--work_dir', default='work_dirs/new_test/hrnet_global_w40')
     # please point out work_dir in this place
     parser.add_argument('--score', default=0.3, type=float)
     # drop result if result's score small than args.score
     parser.add_argument('--show', default=False, type=bool)
     # whether to draw pred box to img
-    parser.add_argument('--eval_mode', choices=['single', 'multiple'], type=str, default='single')
-    # if eval_mode is single, only eval iouThr=0.5
-    # else if eval_mode is multiple, eval iouThr from 0.5 to 0.95
+    parser.add_argument('--iou_mode', choices=['single', 'multiple'], type=str, default='single')
+    # if iou_mode is single, only eval iouThr=0.5
+    # else if iou_mode is multiple, eval iouThr from 0.5 to 0.95
+    parser.add_argument('--area_mode', choices=['single', 'multiple'], type=str, default='single')
+    # if area_mode is single, only eval areaRng='all'
+    # else if area_mode is multiple, eval areaRng='all', 'small', 'medium', 'large'
+    # it takes very long time, more than 20 minutes, use carefully
     #####################################################################################################
+
+    parser.add_argument('--resize_width', default=3000, type=float, help='the width of image after resize')
+    parser.add_argument('--resize_height', default=3000, type=float, help='the height of image after resize')
 
     parser.add_argument('--val_path', type=str, default='data/xview/annotations/instances_val2017.json')
     parser.add_argument('--eval', type=str, default='bbox', nargs='+',

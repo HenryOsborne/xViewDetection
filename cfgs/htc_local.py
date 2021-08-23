@@ -69,12 +69,12 @@ log_config = dict(
 # yapf:enable
 # runtime settings
 evaluation = dict(interval=51, metric='bbox')
-runner = dict(type='EpochBasedRunner', max_epochs=30)
+runner = dict(type='EpochBasedRunner', max_epochs=50)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 work_dir = './work_dirs/htc_local'
 load_from = None
-resume_from = None
+resume_from = './work_dirs/htc_local/epoch_30.pth'
 workflow = [('train', 1)]
 
 

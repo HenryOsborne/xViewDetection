@@ -698,7 +698,7 @@ class GlNetNeck(nn.Module):
             return result
 
         elif mode == 3:
-            assert 'mode1' in self.mode1_work_dir, 'please check config file->model->neck->mode1_work_dir'
+            assert 'mode1' or 'global' in self.mode1_work_dir, 'please check config file->model->neck->mode1_work_dir'
             weight_path = os.path.join(self.mode1_work_dir, 'epoch_50.pth')
             assert os.path.isfile(weight_path), 'please run mode1 first'
 

@@ -1,48 +1,51 @@
-img_scale = (3000, 3000)
-# model settings
+img_scale = (800, 800)
 model = dict(
-    type="LocalLibra",
-    pretrained='torchvision://resnet50',
-    #####################################
-    # param for split global images,
-    # p_size : split size
-    # batch_size : seleted splited images for train
-    p_size=(800, 800),
-    batch_size=2,
-    ori_shape=img_scale,
-    #####################################
+    type='FasterRCNN',
+    pretrained='open-mmlab://msra/hrnetv2_w40',
     backbone=dict(
-        type='ResNet',
-        depth=50,
-        num_stages=4,
-        out_indices=(0, 1, 2, 3),
-        frozen_stages=1,
-        style='pytorch'),
-    neck=[
-        dict(
-            type='FPN',
-            in_channels=[256, 512, 1024, 2048],
-            out_channels=256,
-            num_outs=5),
-        dict(
-            type='BFP',
-            in_channels=256,
-            num_levels=5,
-            refine_level=2,
-            refine_type='non_local')
-    ],
+        type='HRNet',
+        extra=dict(
+            stage1=dict(
+                num_modules=1,
+                num_branches=1,
+                block='BOTTLENECK',
+                num_blocks=(4,),
+                num_channels=(64,)),
+            stage2=dict(
+                num_modules=1,
+                num_branches=2,
+                block='BASIC',
+                num_blocks=(4, 4),
+                num_channels=(40, 80)),
+            stage3=dict(
+                num_modules=4,
+                num_branches=3,
+                block='BASIC',
+                num_blocks=(4, 4, 4),
+                num_channels=(40, 80, 160)),
+            stage4=dict(
+                num_modules=3,
+                num_branches=4,
+                block='BASIC',
+                num_blocks=(4, 4, 4, 4),
+                num_channels=(40, 80, 160, 320)))),
+    neck=dict(type='HRFPN', in_channels=[40, 80, 160, 320], out_channels=256),
     rpn_head=dict(
         type='RPNHead',
         in_channels=256,
         feat_channels=256,
         anchor_generator=dict(
             type='AnchorGenerator',
-            scales=[8],
+            scales=[4],
             ratios=[0.5, 1.0, 2.0],
             strides=[4, 8, 16, 32, 64]),
+        bbox_coder=dict(
+            type='DeltaXYWHBBoxCoder',
+            target_means=[0.0, 0.0, 0.0, 0.0],
+            target_stds=[1.0, 1.0, 1.0, 1.0]),
         loss_cls=dict(
             type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
-        loss_bbox=dict(type='SmoothL1Loss', beta=1.0 / 9.0, loss_weight=1.0)),
+        loss_bbox=dict(type='L1Loss', loss_weight=1.0)),
     roi_head=dict(
         type='StandardRoIHead',
         bbox_roi_extractor=dict(
@@ -56,16 +59,14 @@ model = dict(
             fc_out_channels=1024,
             roi_feat_size=7,
             num_classes=1,
+            bbox_coder=dict(
+                type='DeltaXYWHBBoxCoder',
+                target_means=[0.0, 0.0, 0.0, 0.0],
+                target_stds=[0.1, 0.1, 0.2, 0.2]),
             reg_class_agnostic=False,
             loss_cls=dict(
                 type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0),
-            loss_bbox=dict(
-                type='BalancedL1Loss',
-                alpha=0.5,
-                gamma=1.5,
-                beta=1.0,
-                loss_weight=1.0)),
-    ),
+            loss_bbox=dict(type='L1Loss', loss_weight=1.0))),
     train_cfg=dict(
         rpn=dict(
             assigner=dict(
@@ -84,61 +85,52 @@ model = dict(
             pos_weight=-1,
             debug=False),
         rpn_proposal=dict(
-            nms_pre=2000,
-            nms_post=2000,
-            max_per_img=2000,
+            nms_pre=10000,
+            nms_post=10000,
+            max_per_img=10000,
             nms=dict(type='nms', iou_threshold=0.7),
             min_bbox_size=0),
         rcnn=dict(
             assigner=dict(
                 type='MaxIoUAssigner',
-                pos_iou_thr=0.6,
-                neg_iou_thr=0.6,
-                min_pos_iou=0.6,
+                pos_iou_thr=0.5,
+                neg_iou_thr=0.5,
+                min_pos_iou=0.5,
                 ignore_iof_thr=-1),
             sampler=dict(
-                type='CombinedSampler',
+                type='RandomSampler',
                 num=512,
                 pos_fraction=0.25,
-                add_gt_as_proposals=True,
-                pos_sampler=dict(type='InstanceBalancedPosSampler'),
-                neg_sampler=dict(
-                    type='IoUBalancedNegSampler',
-                    floor_thr=-1,
-                    floor_fraction=0,
-                    num_bins=3)),
+                neg_pos_ub=-1,
+                add_gt_as_proposals=True),
             pos_weight=-1,
             debug=False)),
     test_cfg=dict(
         rpn=dict(
-            nms_pre=2000,
-            nms_post=1000,
-            max_per_img=1000,
+            nms_pre=10000,
+            nms_post=10000,
+            max_per_img=10000,
             nms=dict(type='nms', iou_threshold=0.7),
             min_bbox_size=0),
         rcnn=dict(
-            score_thr=0.3, nms=dict(type='nms', iou_threshold=0.2), max_per_img=1000)
-
-        # rcnn=dict(
-        #     # score_thr=0.05, nms=dict(type='nms', iou_thr=0.5), max_per_img=100)
-        #     # score_thr=0.05, nms=dict(type='soft_nms', iou_thr=0.15, min_score=0.3) , max_per_img=2000)
-        #     score_thr=0.3, nms=dict(type='soft_nms', iou_threshold=0.2, min_score=0.3), max_per_img=2000)
-
-
+            # score_thr=0.05, nms=dict(type='nms', iou_thr=0.5), max_per_img=2000)
+            score_thr=0.3, nms=dict(type='nms', iou_threshold=0.2), max_per_img=10000)
+        # score_thr=0.05, nms=dict(type='soft_nms', iou_thr=0.15, min_score=0.3) , max_per_img=2000)
         # soft-nms is also supported for rcnn testing
         # e.g., nms=dict(type='soft_nms', iou_thr=0.5, min_score=0.05)
     )
 )
-# model training and testing settings
 
 # dataset settings
 dataset_type = 'XviewDataset'
 data_root = 'data/xview/'
+
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations', with_bbox=True),
+    # dict(type='Albu', transforms = [{"type": 'RandomRotate90'}]),#数据增强
     dict(type='Resize', img_scale=img_scale, keep_ratio=False),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
@@ -166,7 +158,7 @@ data = dict(
     workers_per_gpu=2,
     train=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/train_local.json',  # instances_train2017.json',
+        ann_file=data_root + 'annotations/instances_train2017.json',
         img_prefix=data_root + 'images/',
         pipeline=train_pipeline),
     val=dict(
@@ -180,6 +172,7 @@ data = dict(
         img_prefix=data_root + 'images/',
         pipeline=test_pipeline))
 # optimizer
+evaluation = dict(interval=51, metric='bbox')
 optimizer = dict(type='SGD', lr=0.0025, momentum=0.9, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 # learning policy
@@ -188,7 +181,7 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=500,
     warmup_ratio=1.0 / 3,
-    step=[45, 48])
+    step=[25, 28])
 checkpoint_config = dict(interval=10)
 # yapf:disable
 log_config = dict(
@@ -199,11 +192,10 @@ log_config = dict(
     ])
 # yapf:enable
 # runtime settings
-evaluation = dict(interval=51, metric='bbox')
-runner = dict(type='EpochBasedRunner', max_epochs=50)
+runner = dict(type='EpochBasedRunner', max_epochs=30)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/libra_local'
+work_dir = './work_dirs/hrnet_global_w40'
 load_from = None
-resume_from = './work_dirs/libra_local/epoch_30.pth'
+resume_from = None
 workflow = [('train', 1)]

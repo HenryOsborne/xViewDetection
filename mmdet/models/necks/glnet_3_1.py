@@ -79,6 +79,12 @@ class fpn_module_global(nn.Module):
 
     def forward(self, c2, c3, c4, c5, c2_ext=None, c3_ext=None, c4_ext=None, c5_ext=None, ps0_ext=None, ps1_ext=None,
                 ps2_ext=None, mode=None):
+        #  self.ps0_g, self.ps1_g, self.ps2_g = global_model.module.fpn_global.forward(self.c2_g, self.c3_g, self.c4_g, self.c5_g, mode=2)
+        # feat = self.fpn_global.forward(c2_g, c3_g, c4_g, c5_g,
+        #                                c2_ext=self.c2_l, c3_ext=self.c3_l,
+        #                                c4_ext=self.c4_l, c5_ext=self.c5_l,
+        #                                ps0_ext=self.ps0_l, ps1_ext=self.ps1_l,
+        #                                ps2_ext=self.ps2_l, mode=3)
 
         # Top-down
         if c5_ext is None:
@@ -229,6 +235,17 @@ class fpn_module_local(nn.Module):
 
     def forward(self, c2, c3, c4, c5, c2_ext, c3_ext, c4_ext, c5_ext, ps0_ext, ps1_ext, ps2_ext, mode=None):
         # Top-down
+        # ps0, ps1, ps2, ps3 = self.fpn_local.forward(
+        #     c2, c3, c4, c5,
+        #     self._crop_global(self.c2_g, top_lefts[oped[0]:oped[1]], ratio),
+        #     c3_ext=self._crop_global(self.c3_g, top_lefts[oped[0]:oped[1]], ratio),
+        #     c4_ext=self._crop_global(self.c4_g, top_lefts[oped[0]:oped[1]], ratio),
+        #     c5_ext=self._crop_global(self.c5_g, top_lefts[oped[0]:oped[1]], ratio),
+        #     ps0_ext=[self._crop_global(f, top_lefts[oped[0]:oped[1]], ratio) for f in self.ps0_g],
+        #     ps1_ext=[self._crop_global(f, top_lefts[oped[0]:oped[1]], ratio) for f in self.ps1_g],
+        #     ps2_ext=[self._crop_global(f, top_lefts[oped[0]:oped[1]], ratio) for f in self.ps2_g],
+        #     mode=3)
+
         if mode == 4:
             p5 = self.toplayer_local(c5)
             p4 = self._upsample_add(p5, self.latlayer1_local(c4))
@@ -241,6 +258,7 @@ class fpn_module_local(nn.Module):
         else:
             p5 = self.toplayer(
                 torch.cat([c5] + [F.interpolate(c5_ext[0], size=c5.size()[2:], **self._up_kwargs)], dim=1))
+            #self.latlayer1 = nn.Conv2d(1024 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
             p4 = self._upsample_add(p5, self.latlayer1(
                 torch.cat([c4] + [F.interpolate(c4_ext[0], size=c4.size()[2:], **self._up_kwargs)], dim=1)))
             p3 = self._upsample_add(p4, self.latlayer2(
@@ -535,6 +553,7 @@ class GlNetNeck_3_1(nn.Module):#global_fpn smooth1_1_ext kernel_size(1,1)  local
         crop = torch.stack(crop, dim=0)  # stack into mini-batch
         return [crop]  # return as a list for easy to torch.cat
 
+    # self.c2_b = self._merge_local(c2, self.c2_b, self.c2_g, top_lefts, oped, ratio, template)
     def _merge_local(self, f_local, merge, f_global, top_lefts, oped, ratio, template):
         """
         merge feature maps from local patches, and finally to a whole image's feature map (on cuda)

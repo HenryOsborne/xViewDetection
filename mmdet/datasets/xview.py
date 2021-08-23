@@ -17,7 +17,6 @@ from .custom import CustomDataset
 
 @DATASETS.register_module()
 class XviewDataset(CustomDataset):
-
     CLASSES = ('root',)
 
     def load_annotations(self, ann_file):
@@ -330,8 +329,7 @@ class XviewDataset(CustomDataset):
         """
         assert isinstance(results, list), 'results must be a list'
         assert len(results) == len(self), (
-            'The length of results is not equal to the dataset len: {} != {}'.
-                format(len(results), len(self)))
+            'The length of results is not equal to the dataset len: {} != {}'.format(len(results), len(self)))
 
         if jsonfile_prefix is None:
             tmp_dir = tempfile.TemporaryDirectory()
@@ -347,7 +345,7 @@ class XviewDataset(CustomDataset):
                  logger=None,
                  jsonfile_prefix=None,
                  classwise=False,
-                 proposal_nums=(100, 300, 1000),
+                 proposal_nums=(100000,),
                  iou_thrs=None,
                  metric_items=None):
         """Evaluation in COCO protocol.
@@ -387,8 +385,8 @@ class XviewDataset(CustomDataset):
             if metric not in allowed_metrics:
                 raise KeyError(f'metric {metric} is not supported')
         if iou_thrs is None:
-            iou_thrs = np.linspace(
-                .5, 0.95, int(np.round((0.95 - .5) / .05)) + 1, endpoint=True)
+            # iou_thrs = np.linspace(.5, 0.95, int(np.round((0.95 - .5) / .05)) + 1, endpoint=True)
+            iou_thrs = np.array([0.5])
         if metric_items is not None:
             if not isinstance(metric_items, list):
                 metric_items = [metric_items]
@@ -427,10 +425,13 @@ class XviewDataset(CustomDataset):
 
             iou_type = 'bbox' if metric == 'proposal' else metric
             cocoEval = COCOeval(cocoGt, cocoDt, iou_type)
+            ########################################################
             cocoEval.params.catIds = self.cat_ids
             cocoEval.params.imgIds = self.img_ids
             cocoEval.params.maxDets = list(proposal_nums)
             cocoEval.params.iouThrs = iou_thrs
+            cocoEval.params.scoceThrs = 0.3
+            #######################################################
             # mapping of cocoEval.stats
             coco_metric_names = {
                 'mAP': 0,

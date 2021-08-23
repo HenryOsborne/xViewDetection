@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="cal_flops" type="PythonConfigurationType" factoryName="Python" folderName="analyze" nameIsGenerated="true">
+  <configuration default="false" name="coco_error_analysis" type="PythonConfigurationType" factoryName="Python" folderName="analyze" nameIsGenerated="true">
     <module name="mmdetection" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
@@ -12,7 +12,7 @@
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/ap_and_result/cal_flops.py" />
+    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tools/analysis_tools/coco_error_analysis.py" />
     <option name="PARAMETERS" value="" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />

@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from pycocotools.coco import COCO
 from pycocotools.cocoeval import COCOeval
+from ap_and_result.coco_eval import coco_evaluate, coco_accumulate
 
 
 def makeplot(rs, ps, outDir, class_name, iou_type):
@@ -54,7 +55,7 @@ def autolabel(ax, rects):
     """Attach a text label above each bar in *rects*, displaying its height."""
     for rect in rects:
         height = rect.get_height()
-        if height > 0 and height <= 1:  # for percent values
+        if 0 < height <= 1:  # for percent values
             text_label = '{:2.0f}'.format(height * 100)
         else:
             text_label = '{:2.0f}'.format(height)
@@ -199,8 +200,8 @@ def analyze_individual_category(k,
             gt.dataset['annotations'][idx]['category_id'] = catId
     cocoEval = COCOeval(gt, copy.deepcopy(dt), iou_type)
     cocoEval.params.imgIds = imgIds
-    cocoEval.params.maxDets = [100]
-    cocoEval.params.iouThrs = [0.1]
+    cocoEval.params.maxDets = [100000]
+    cocoEval.params.iouThrs = [0.3]
     cocoEval.params.useCats = 1
     if areas:
         cocoEval.params.areaRng = [[0**2, areas[2]], [0**2, areas[0]],
@@ -218,8 +219,8 @@ def analyze_individual_category(k,
             gt.dataset['annotations'][idx]['category_id'] = catId
     cocoEval = COCOeval(gt, copy.deepcopy(dt), iou_type)
     cocoEval.params.imgIds = imgIds
-    cocoEval.params.maxDets = [100]
-    cocoEval.params.iouThrs = [0.1]
+    cocoEval.params.maxDets = [100000]
+    cocoEval.params.iouThrs = [0.3]
     cocoEval.params.useCats = 1
     if areas:
         cocoEval.params.areaRng = [[0**2, areas[2]], [0**2, areas[0]],
@@ -262,7 +263,7 @@ def analyze_results(res_file,
             copy.deepcopy(cocoGt), copy.deepcopy(cocoDt), iou_type)
         cocoEval.params.imgIds = imgIds
         cocoEval.params.iouThrs = [0.75, 0.5, 0.1]
-        cocoEval.params.maxDets = [100]
+        cocoEval.params.maxDets = [100000]
         if areas:
             cocoEval.params.areaRng = [[0**2, areas[2]], [0**2, areas[0]],
                                        [areas[0], areas[1]],
@@ -306,18 +307,19 @@ def analyze_results(res_file,
 
 def main():
     parser = ArgumentParser(description='COCO Error Analysis Tool')
-    parser.add_argument('result', help='result file (json format) path')
-    parser.add_argument('out_dir', help='dir to save analyze result images')
+    parser.add_argument('--result', help='result file (json format) path',
+                        default='work_dirs/faster_global/ResFile.json')
+    parser.add_argument('--out_dir', help='dir to save analyze result images', default='work_dirs/faster_global')
     parser.add_argument(
         '--ann',
-        default='data/coco/annotations/instances_val2017.json',
+        default='data/xview/annotations/instances_val2017.json',
         help='annotation file path')
     parser.add_argument(
         '--types', type=str, nargs='+', default=['bbox'], help='result types')
     parser.add_argument(
         '--extraplots',
         action='store_true',
-        help='export extra bar/stat plots')
+        help='export extra bar/stat plots', default=True)
     parser.add_argument(
         '--areas',
         type=int,
