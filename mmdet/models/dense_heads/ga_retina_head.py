@@ -48,6 +48,9 @@ class GARetinaHead(GuidedAnchorHead):
                     conv_cfg=self.conv_cfg,
                     norm_cfg=self.norm_cfg))
 
+        # in_channels: int,
+        # out_channels: int,
+        # kernel_size: _size_2_t,
         self.conv_loc = nn.Conv2d(self.feat_channels, 1, 1)
         self.conv_shape = nn.Conv2d(self.feat_channels, self.num_anchors * 2,
                                     1)
