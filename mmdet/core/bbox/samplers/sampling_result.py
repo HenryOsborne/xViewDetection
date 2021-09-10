@@ -48,6 +48,9 @@ class SamplingResult(util_mixins.NiceRepr):
         else:
             self.pos_gt_labels = None
 
+        if assign_result.matching_weight is not None:
+            self.matching_weight = assign_result.matching_weight[pos_inds]
+
     @property
     def bboxes(self):
         """torch.Tensor: concatenated positive and negative boxes"""

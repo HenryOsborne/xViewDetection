@@ -39,6 +39,8 @@ from .local_cascade import LocalCascadeRCNN
 from .local_gl_ga import LocalGLGA
 from .local_htc import LocalHybridTaskCascade
 from .local_trident import LocalTridentFasterRCNN
+from .DAL.two_stage_dal import TwoStageDetectorDAL
+from .DAL.faster_rcnn_dal import FasterRCNNDAL
 
 __all__ = [
     'ATSS', 'BaseDetector', 'SingleStageDetector',
@@ -49,5 +51,6 @@ __all__ = [
     'YOLOV3', 'YOLACT', 'VFNet', 'DETR', 'TridentFasterRCNN', 'SparseRCNN',
     'SCNet', 'LocalLibra', 'LocalFasterRCNN',
     'LocalSparseRCNN', 'LocalDynamic', 'GlobalGLGA', 'GLTwoStage', 'TwoStageDetectorLocal',
-    'LocalCascadeRCNN', 'LocalGLGA', 'LocalHybridTaskCascade', 'LocalTridentFasterRCNN'
+    'LocalCascadeRCNN', 'LocalGLGA', 'LocalHybridTaskCascade', 'LocalTridentFasterRCNN',
+    'TwoStageDetectorDAL', 'FasterRCNNDAL'
 ]

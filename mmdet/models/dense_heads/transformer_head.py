@@ -89,28 +89,28 @@ class TransformerHead(AnchorFreeHead):
         super(AnchorFreeHead, self).__init__()
         use_sigmoid_cls = loss_cls.get('use_sigmoid', False)
         assert not use_sigmoid_cls, 'setting use_sigmoid_cls as True is ' \
-            'not supported in DETR, since background is needed for the ' \
-            'matching process.'
+                                    'not supported in DETR, since background is needed for the ' \
+                                    'matching process.'
         assert 'embed_dims' in transformer \
-            and 'num_feats' in positional_encoding
+               and 'num_feats' in positional_encoding
         num_feats = positional_encoding['num_feats']
         embed_dims = transformer['embed_dims']
         assert num_feats * 2 == embed_dims, 'embed_dims should' \
-            f' be exactly 2 times of num_feats. Found {embed_dims}' \
-            f' and {num_feats}.'
+                                            f' be exactly 2 times of num_feats. Found {embed_dims}' \
+                                            f' and {num_feats}.'
         assert test_cfg is not None and 'max_per_img' in test_cfg
 
         class_weight = loss_cls.get('class_weight', None)
         if class_weight is not None:
             assert isinstance(class_weight, float), 'Expected ' \
-                'class_weight to have type float. Found ' \
-                f'{type(class_weight)}.'
+                                                    'class_weight to have type float. Found ' \
+                                                    f'{type(class_weight)}.'
             # NOTE following the official DETR rep0, bg_cls_weight means
             # relative classification weight of the no-object class.
             bg_cls_weight = loss_cls.get('bg_cls_weight', class_weight)
             assert isinstance(bg_cls_weight, float), 'Expected ' \
-                'bg_cls_weight to have type float. Found ' \
-                f'{type(bg_cls_weight)}.'
+                                                     'bg_cls_weight to have type float. Found ' \
+                                                     f'{type(bg_cls_weight)}.'
             class_weight = torch.ones(num_classes + 1) * class_weight
             # set background class as the last indice
             class_weight[num_classes] = bg_cls_weight
@@ -120,15 +120,15 @@ class TransformerHead(AnchorFreeHead):
             self.bg_cls_weight = bg_cls_weight
 
         if train_cfg:
-            assert 'assigner' in train_cfg, 'assigner should be provided '\
-                'when train_cfg is set.'
+            assert 'assigner' in train_cfg, 'assigner should be provided ' \
+                                            'when train_cfg is set.'
             assigner = train_cfg['assigner']
             assert loss_cls['loss_weight'] == assigner['cls_cost']['weight'], \
                 'The classification weight for loss and matcher should be' \
                 'exactly the same.'
             assert loss_bbox['loss_weight'] == assigner['reg_cost'][
                 'weight'], 'The regression L1 weight for loss and matcher ' \
-                'should be exactly the same.'
+                           'should be exactly the same.'
             assert loss_iou['loss_weight'] == assigner['iou_cost']['weight'], \
                 'The regression iou weight for loss and matcher should be' \
                 'exactly the same.'
@@ -160,7 +160,7 @@ class TransformerHead(AnchorFreeHead):
     def _init_layers(self):
         """Initialize layers of the transformer head."""
         self.input_proj = Conv2d(
-            self.in_channels, self.embed_dims, kernel_size=1)
+            self.in_channels, self.embed_dims, kernel_size=(1, 1))
         self.fc_cls = Linear(self.embed_dims, self.cls_out_channels)
         self.reg_ffn = FFN(
             self.embed_dims,
@@ -365,10 +365,8 @@ class TransformerHead(AnchorFreeHead):
         # classification loss
         cls_scores = cls_scores.reshape(-1, self.cls_out_channels)
         # construct weighted avg_factor to match with the official DETR repo
-        cls_avg_factor = num_total_pos * 1.0 + \
-            num_total_neg * self.bg_cls_weight
-        loss_cls = self.loss_cls(
-            cls_scores, labels, label_weights, avg_factor=cls_avg_factor)
+        cls_avg_factor = num_total_pos * 1.0 + num_total_neg * self.bg_cls_weight
+        loss_cls = self.loss_cls(cls_scores, labels, label_weights, avg_factor=cls_avg_factor)
 
         # Compute the average number of gt boxes accross all gpus, for
         # normalization purposes
@@ -381,7 +379,7 @@ class TransformerHead(AnchorFreeHead):
             img_h, img_w, _ = img_meta['img_shape']
             factor = bbox_pred.new_tensor([img_w, img_h, img_w,
                                            img_h]).unsqueeze(0).repeat(
-                                               bbox_pred.size(0), 1)
+                bbox_pred.size(0), 1)
             factors.append(factor)
         factors = torch.cat(factors, 0)
 
@@ -451,8 +449,8 @@ class TransformerHead(AnchorFreeHead):
 
         (labels_list, label_weights_list, bbox_targets_list,
          bbox_weights_list, pos_inds_list, neg_inds_list) = multi_apply(
-             self._get_target_single, cls_scores_list, bbox_preds_list,
-             gt_bboxes_list, gt_labels_list, img_metas, gt_bboxes_ignore_list)
+            self._get_target_single, cls_scores_list, bbox_preds_list,
+            gt_bboxes_list, gt_labels_list, img_metas, gt_bboxes_ignore_list)
         num_total_pos = sum((inds.numel() for inds in pos_inds_list))
         num_total_neg = sum((inds.numel() for inds in neg_inds_list))
         return (labels_list, label_weights_list, bbox_targets_list,
@@ -505,7 +503,7 @@ class TransformerHead(AnchorFreeHead):
         neg_inds = sampling_result.neg_inds
 
         # label targets
-        labels = gt_bboxes.new_full((num_bboxes, ),
+        labels = gt_bboxes.new_full((num_bboxes,),
                                     self.num_classes,
                                     dtype=torch.long)
         labels[pos_inds] = gt_labels[sampling_result.pos_assigned_gt_inds]

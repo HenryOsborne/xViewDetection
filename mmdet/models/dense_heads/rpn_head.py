@@ -172,12 +172,9 @@ class RPNHead(RPNTestMixin, AnchorHead):
             mlvl_bbox_preds.append(rpn_bbox_pred)
             mlvl_valid_anchors.append(anchors)
             level_ids.append(
-                scores.new_full((
-                    batch_size,
-                    scores.size(1),
-                ),
-                    idx,
-                    dtype=torch.long))
+                scores.new_full((batch_size, scores.size(1),),
+                                idx,
+                                dtype=torch.long))
 
         batch_mlvl_scores = torch.cat(mlvl_scores, dim=1)
         batch_mlvl_anchors = torch.cat(mlvl_valid_anchors, dim=1)
@@ -214,9 +211,7 @@ class RPNHead(RPNTestMixin, AnchorHead):
                                                          f'which will be deprecated.'
 
         result_list = []
-        for (mlvl_proposals, mlvl_scores,
-             mlvl_ids) in zip(batch_mlvl_proposals, batch_mlvl_scores,
-                              batch_mlvl_ids):
+        for (mlvl_proposals, mlvl_scores, mlvl_ids) in zip(batch_mlvl_proposals, batch_mlvl_scores, batch_mlvl_ids):
             # Skip nonzero op while exporting to ONNX
             if cfg.min_bbox_size > 0 and (not torch.onnx.is_in_onnx_export()):
                 w = mlvl_proposals[:, 2] - mlvl_proposals[:, 0]

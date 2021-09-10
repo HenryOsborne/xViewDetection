@@ -4,6 +4,7 @@ import torch
 import numpy as np
 from ..builder import NECKS
 from .. import builder
+from mmdet.utils import get_root_logger
 import os
 
 
@@ -27,7 +28,6 @@ class fpn_module_global(nn.Module):
         self.smooth2_2 = nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
         self.smooth3_2 = nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
         self.smooth4_2 = nn.Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-
 
         self.toplayer_ext = nn.Conv2d(2048 * 2, 256, kernel_size=(1, 1), stride=(1, 1),
                                       padding=(0, 0))  # Reduce channels
@@ -57,7 +57,7 @@ class fpn_module_global(nn.Module):
         return torch.cat([p5, p4, p3, p2], dim=1)
 
     def _upsample_add(self, x, y):
-        '''Upsample and add two feature maps.
+        """Upsample and add two feature maps.
         Args:
           x: (Variable) top feature map to be upsampled.
           y: (Variable) lateral feature map.
@@ -71,7 +71,7 @@ class fpn_module_global(nn.Module):
         conv2d feature map size: [N,_,8,8] ->
         upsampled feature map size: [N,_,16,16]
         So we choose bilinear upsample which supports arbitrary output sizes.
-        '''
+        """
         _, _, H, W = y.size()
         up_x = F.interpolate(x, size=(H, W), **self._up_kwargs)
 
@@ -149,7 +149,7 @@ class fpn_module_local(nn.Module):
         self.latlayer3 = nn.Conv2d(256 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
         # Smooth layers
         # ps0
-        ###################################kernel_size=(3, 3)->kernel_size=(1, 1)  padding=(1, 1)->padding=(0, 0)#######################
+        ##############kernel_size=(3, 3)->kernel_size=(1, 1)  padding=(1, 1)->padding=(0, 0)##############
         self.smooth1_1 = nn.Conv2d(256 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
         self.smooth2_1 = nn.Conv2d(256 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
         self.smooth3_1 = nn.Conv2d(256 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
@@ -159,14 +159,12 @@ class fpn_module_local(nn.Module):
         self.smooth2_2 = nn.Conv2d(256 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))  # 128
         self.smooth3_2 = nn.Conv2d(256 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))  # 128
         self.smooth4_2 = nn.Conv2d(256 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))  # 128
-        ################################################################################################################################
-
+        ###################################################################################################
 
         # ps2 is concatenation
         # Classify layers
         self.smooth = nn.Conv2d(128 * 4 * self.fold * 2, 128 * 4, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
         self.classify = nn.Conv2d(128 * 4, numClass, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
-
 
         ##############################local-only#####################################################
         self.toplayer_local = nn.Conv2d(2048 * self.local_flod, 256, kernel_size=(1, 1), stride=(1, 1),
@@ -206,7 +204,7 @@ class fpn_module_local(nn.Module):
         return torch.cat([p5, p4, p3, p2], dim=1)
 
     def _upsample_add(self, x, y):
-        '''Upsample and add two feature maps.
+        """Upsample and add two feature maps.
         Args:
           x: (Variable) top feature map to be upsampled.
           y: (Variable) lateral feature map.
@@ -220,7 +218,7 @@ class fpn_module_local(nn.Module):
         conv2d feature map size: [N,_,8,8] ->
         upsampled feature map size: [N,_,16,16]
         So we choose bilinear upsample which supports arbitrary output sizes.
-        '''
+        """
         _, _, H, W = y.size()
         return F.interpolate(x, size=(H, W), **self._up_kwargs) + y
 
@@ -251,14 +249,14 @@ class fpn_module_local(nn.Module):
             p4 = self._upsample_add(p5, self.latlayer1_local(c4))
             p3 = self._upsample_add(p4, self.latlayer2_local(c3))
             p2 = self._upsample_add(p3, self.latlayer3_local(c2))
-            #no smooth
+            # no smooth
             ps2 = [p5, p4, p3, p2]
             return ps2
 
         else:
             p5 = self.toplayer(
                 torch.cat([c5] + [F.interpolate(c5_ext[0], size=c5.size()[2:], **self._up_kwargs)], dim=1))
-            #self.latlayer1 = nn.Conv2d(1024 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
+            # self.latlayer1 = nn.Conv2d(1024 * self.fold, 256, kernel_size=(1, 1), stride=(1, 1), padding=(0, 0))
             p4 = self._upsample_add(p5, self.latlayer1(
                 torch.cat([c4] + [F.interpolate(c4_ext[0], size=c4.size()[2:], **self._up_kwargs)], dim=1)))
             p3 = self._upsample_add(p4, self.latlayer2(
@@ -267,9 +265,6 @@ class fpn_module_local(nn.Module):
                 torch.cat([c2] + [F.interpolate(c2_ext[0], size=c2.size()[2:], **self._up_kwargs)], dim=1)))
 
         ps0 = [p5, p4, p3, p2]
-
-
-
 
         # Smooth
         if mode == 4:
@@ -338,7 +333,8 @@ class fpn_module_local(nn.Module):
 
 
 @NECKS.register_module
-class GlNetNeck_3_1(nn.Module):#global_fpn smooth1_1_ext kernel_size(1,1)  local_fpn  smooth1_1.....smooth4_2...kernel_size(1,1)
+class GlNetNeck_3_1(nn.Module):
+    # global_fpn smooth1_1_ext kernel_size(1,1)  local_fpn  smooth1_1.....smooth4_2...kernel_size(1,1)
     def __init__(self, numClass, mode1_work_dir=None):
         super(GlNetNeck_3_1, self).__init__()
         self.mode1_work_dir = mode1_work_dir
@@ -740,6 +736,9 @@ class GlNetNeck_3_1(nn.Module):#global_fpn smooth1_1_ext kernel_size(1,1)  local
             weight_path = os.path.join(self.mode1_work_dir, 'epoch_20.pth')
             assert os.path.isfile(weight_path), 'please run mode1 first'
 
+            logger = get_root_logger()
+            logger.info(f'mode3 load state from mode1 {weight_path}')
+
             global_fixed = GlNetNeck_3_1(2)
             global_fixed = nn.DataParallel(global_fixed)
             global_fixed = global_fixed.cuda()
@@ -749,11 +748,12 @@ class GlNetNeck_3_1(nn.Module):#global_fpn smooth1_1_ext kernel_size(1,1)  local
             trained_partial_item = trained_partial.get("state_dict")  # 'neck.resnet_global.conv1.weight'
             from collections import OrderedDict
             new_state_dict = OrderedDict()  # 新建一个model
+
             for k, v in trained_partial_item.items():
                 if 'neck' in k:
                     name = "module" + k[4:]
-
                     new_state_dict[name] = v
+
             pretrained_dict = {k: v for k, v in new_state_dict.items() if k in state and "global" in k}
             state.update(pretrained_dict)
             global_fixed.load_state_dict(state)

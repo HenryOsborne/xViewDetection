@@ -95,11 +95,11 @@ class TwoStageDetector(BaseDetector):
         # rpn
         if self.with_rpn:
             rpn_outs = self.rpn_head(x)
-            outs = outs + (rpn_outs, )
+            outs = outs + (rpn_outs,)
         proposals = torch.randn(1000, 4).to(img.device)
         # roi_head
         roi_outs = self.roi_head.forward_dummy(x, proposals)
-        outs = outs + (roi_outs, )
+        outs = outs + (roi_outs,)
         return outs
 
     def forward_train(self,

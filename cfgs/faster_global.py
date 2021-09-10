@@ -55,6 +55,10 @@ model = dict(
                 pos_iou_thr=0.7,
                 neg_iou_thr=0.3,
                 min_pos_iou=0.3,
+                # if GT is too large, could lead to the explosion of GPU memory
+                # can change the value of gpu_assign_thr
+                # if number of GT > gpu_assign_thr, then use cpu to claculator iou
+                gpu_assign_thr=-1,
                 ignore_iof_thr=-1),
             sampler=dict(
                 type='RandomSampler',

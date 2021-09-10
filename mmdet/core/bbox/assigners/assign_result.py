@@ -39,11 +39,12 @@ class AssignResult(util_mixins.NiceRepr):
                       labels.shape=(7,))>
     """
 
-    def __init__(self, num_gts, gt_inds, max_overlaps, labels=None):
+    def __init__(self, num_gts, gt_inds, max_overlaps, labels=None, matching_weight=None):
         self.num_gts = num_gts
         self.gt_inds = gt_inds
         self.max_overlaps = max_overlaps
         self.labels = labels
+        self.matching_weight = matching_weight
         # Interface for possible user-defined properties
         self._extra_properties = {}
 
@@ -76,8 +77,7 @@ class AssignResult(util_mixins.NiceRepr):
 
     def __nice__(self):
         """str: a "nice" summary string describing this assign result"""
-        parts = []
-        parts.append(f'num_gts={self.num_gts!r}')
+        parts = [f'num_gts={self.num_gts!r}']
         if self.gt_inds is None:
             parts.append(f'gt_inds={self.gt_inds!r}')
         else:

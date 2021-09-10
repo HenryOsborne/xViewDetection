@@ -22,7 +22,7 @@ class MultiheadAttention(nn.Module):
     def __init__(self, embed_dims, num_heads, dropout=0.0):
         super(MultiheadAttention, self).__init__()
         assert embed_dims % num_heads == 0, 'embed_dims must be ' \
-            f'divisible by num_heads. got {embed_dims} and {num_heads}.'
+                                            f'divisible by num_heads. got {embed_dims} and {num_heads}.'
         self.embed_dims = embed_dims
         self.num_heads = num_heads
         self.dropout = dropout
@@ -126,7 +126,7 @@ class FFN(nn.Module):
                  add_residual=True):
         super(FFN, self).__init__()
         assert num_fcs >= 2, 'num_fcs should be no less ' \
-            f'than 2. got {num_fcs}.'
+                             f'than 2. got {num_fcs}.'
         self.embed_dims = embed_dims
         self.feedforward_channels = feedforward_channels
         self.num_fcs = num_fcs
@@ -711,11 +711,9 @@ class Transformer(nn.Module):
         bs, c, h, w = x.shape
         x = x.flatten(2).permute(2, 0, 1)  # [bs, c, h, w] -> [h*w, bs, c]
         pos_embed = pos_embed.flatten(2).permute(2, 0, 1)
-        query_embed = query_embed.unsqueeze(1).repeat(
-            1, bs, 1)  # [num_query, dim] -> [num_query, bs, dim]
+        query_embed = query_embed.unsqueeze(1).repeat(1, bs, 1)  # [num_query, dim] -> [num_query, bs, dim]
         mask = mask.flatten(1)  # [bs, h, w] -> [bs, h*w]
-        memory = self.encoder(
-            x, pos=pos_embed, attn_mask=None, key_padding_mask=mask)
+        memory = self.encoder(x, pos=pos_embed, attn_mask=None, key_padding_mask=mask)
         target = torch.zeros_like(query_embed)
         # out_dec: [num_layers, num_query, bs, dim]
         out_dec = self.decoder(
@@ -798,7 +796,7 @@ class DynamicConv(nn.Module):
 
         self.activation = build_activation_layer(act_cfg)
 
-        num_output = self.out_channels * input_feat_shape**2
+        num_output = self.out_channels * input_feat_shape ** 2
         self.fc_layer = nn.Linear(num_output, self.out_channels)
         self.fc_norm = build_norm_layer(norm_cfg, self.out_channels)[1]
 

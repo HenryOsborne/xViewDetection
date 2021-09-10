@@ -4,6 +4,7 @@ import torch
 import numpy as np
 from ..builder import NECKS
 from .. import builder
+from mmdet.utils import get_root_logger
 import os
 
 
@@ -702,6 +703,9 @@ class GLNET_fpn(nn.Module):
             finished_path = self.work_dir.replace('mode3', 'global')
             weight_path = os.path.join(finished_path, 'epoch_50.pth')
             assert os.path.isfile(weight_path), 'please run mode1 first'
+
+            logger = get_root_logger()
+            logger.info(f'mode3 load state from mode1 {weight_path}')
 
             global_fixed = GLNET_fpn(2)
             global_fixed = nn.DataParallel(global_fixed)

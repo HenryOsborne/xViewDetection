@@ -57,7 +57,16 @@ class MaxIoUAssigner(BaseAssigner):
         self.match_low_quality = match_low_quality
         self.iou_calculator = build_iou_calculator(iou_calculator)
 
-    def assign(self, bboxes, gt_bboxes, gt_bboxes_ignore=None, gt_labels=None):
+    def assign(self,
+               bboxes,
+               gt_bboxes,
+               gt_bboxes_ignore=None,
+               gt_labels=None,
+               cls_scores=None,
+               bbox_preds=None,
+               process=None,
+               cls_out_channels=None,
+               inside_flags=None):
         """Assign gt to bboxes.
 
         This method assign a gt bbox to every bbox (proposal/anchor), each bbox
@@ -73,6 +82,11 @@ class MaxIoUAssigner(BaseAssigner):
            one) to itself
 
         Args:
+            inside_flags:
+            cls_out_channels:
+            process:
+            bbox_preds:
+            cls_scores:
             bboxes (Tensor): Bounding boxes to be assigned, shape(n, 4).
             gt_bboxes (Tensor): Groundtruth boxes, shape (k, 4).
             gt_bboxes_ignore (Tensor, optional): Ground truth bboxes that are
@@ -91,7 +105,7 @@ class MaxIoUAssigner(BaseAssigner):
             >>> assert torch.all(assign_result.gt_inds == expected_gt_inds)
         """
         assign_on_cpu = True if (self.gpu_assign_thr > 0) and (
-            gt_bboxes.shape[0] > self.gpu_assign_thr) else False
+                gt_bboxes.shape[0] > self.gpu_assign_thr) else False
         # compute overlap and assign gt on CPU when number of GT is large
         if assign_on_cpu:
             device = bboxes.device
@@ -138,20 +152,20 @@ class MaxIoUAssigner(BaseAssigner):
         num_gts, num_bboxes = overlaps.size(0), overlaps.size(1)
 
         # 1. assign -1 by default
-        assigned_gt_inds = overlaps.new_full((num_bboxes, ),
+        assigned_gt_inds = overlaps.new_full((num_bboxes,),
                                              -1,
                                              dtype=torch.long)
 
         if num_gts == 0 or num_bboxes == 0:
             # No ground truth or boxes, return empty assignment
-            max_overlaps = overlaps.new_zeros((num_bboxes, ))
+            max_overlaps = overlaps.new_zeros((num_bboxes,))
             if num_gts == 0:
                 # No truth, assign everything to background
                 assigned_gt_inds[:] = 0
             if gt_labels is None:
                 assigned_labels = None
             else:
-                assigned_labels = overlaps.new_full((num_bboxes, ),
+                assigned_labels = overlaps.new_full((num_bboxes,),
                                                     -1,
                                                     dtype=torch.long)
             return AssignResult(
@@ -199,7 +213,7 @@ class MaxIoUAssigner(BaseAssigner):
                         assigned_gt_inds[gt_argmax_overlaps[i]] = i + 1
 
         if gt_labels is not None:
-            assigned_labels = assigned_gt_inds.new_full((num_bboxes, ), -1)
+            assigned_labels = assigned_gt_inds.new_full((num_bboxes,), -1)
             pos_inds = torch.nonzero(
                 assigned_gt_inds > 0, as_tuple=False).squeeze()
             if pos_inds.numel() > 0:

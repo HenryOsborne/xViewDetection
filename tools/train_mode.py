@@ -159,28 +159,27 @@ def main():
     meta['seed'] = args.seed
     meta['exp_name'] = osp.basename(args.config)
 
-    ###mode == 1(global-only) or mode == 4(local-only)##############################################
+    #################### mode == 1(global-only) or mode == 4(local-only) ####################
     if mode == 1 or mode == 4:
         model = build_detector(
             cfg.model,
             train_cfg=cfg.get('train_cfg'),
             test_cfg=cfg.get('test_cfg'))
 
-    #####################GlOBAL->LOCAL################################################################
+    ############################################# GlOBAL->LOCAL #############################################
     if mode == 2:
         model = build_detector(
             cfg.model,
             train_cfg=cfg.get('train_cfg'),
             test_cfg=cfg.get('test_cfg'))
 
-        print("mode2 load state from mode1")
-
-        # assert 'mode2' in args.work_dir
         assert args.load_from is not None, 'In mode2, please specific mode1\'s work_dir in args.load_from'
         finished_path = args.load_from
-        # weight_path = os.path.join(finished_path, 'latest.pth')
-        weight_path = os.path.join(finished_path, 'epoch_20.pth')
+        weight_path = os.path.join(finished_path, 'epoch_30.pth')
         assert os.path.isfile(weight_path), 'please run mode 1 first'
+
+        logger.info(f'mode2 load state from mode1 {weight_path}')
+
         partial = torch.load(weight_path)
         print('load model from {}'.format(weight_path))
         partial_item = partial.get("state_dict")
@@ -191,19 +190,19 @@ def main():
 
         state.update(pretrained_dict)
         model.load_state_dict(state)
-    ###################GlOBAL->LOCAL->GLOBAL#############################################
-    elif mode == 3:
 
+    ############################################# GlOBAL->LOCAL->GLOBAL #############################################
+    elif mode == 3:
         model = build_detector(
             cfg.model,
             train_cfg=cfg.get('train_cfg'),
             test_cfg=cfg.get('test_cfg'))
 
-        print("mode3 load state from mode2")
-
-        # assert 'mode3' in cfg.work_dir
         weight_path = os.path.join(cfg.mode2_work_dir, 'epoch_30.pth')
         assert os.path.isfile(weight_path), 'please run mode 2 first'
+
+        logger.info(f'mode3 load state from mode2 {weight_path}')
+
         partial = torch.load(weight_path)
         partial_item = partial.get("state_dict")
         state = model.state_dict()

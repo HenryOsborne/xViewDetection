@@ -68,7 +68,7 @@ class AnchorGenerator(object):
         # check center and center_offset
         if center_offset != 0:
             assert centers is None, 'center cannot be set when center_offset' \
-                f'!=0, {centers} is given.'
+                                    f'!=0, {centers} is given.'
         if not (0 <= center_offset <= 1):
             raise ValueError('center_offset should be in range [0, 1], '
                              f'{center_offset} is given.')
@@ -87,14 +87,14 @@ class AnchorGenerator(object):
 
         # calculate scales of anchors
         assert ((octave_base_scale is not None
-                and scales_per_octave is not None) ^ (scales is not None)), \
+                 and scales_per_octave is not None) ^ (scales is not None)), \
             'scales and octave_base_scale with scales_per_octave cannot' \
             ' be set at the same time'
         if scales is not None:
             self.scales = torch.Tensor(scales)
         elif octave_base_scale is not None and scales_per_octave is not None:
             octave_scales = np.array(
-                [2**(i / scales_per_octave) for i in range(scales_per_octave)])
+                [2 ** (i / scales_per_octave) for i in range(scales_per_octave)])
             scales = octave_scales * octave_base_scale
             self.scales = torch.Tensor(scales)
         else:

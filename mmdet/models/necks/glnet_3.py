@@ -3,6 +3,7 @@ import torch.nn.functional as F
 import torch
 import numpy as np
 from ..builder import NECKS
+from mmdet.utils import get_root_logger
 from .. import builder
 import os
 
@@ -52,7 +53,7 @@ class fpn_module_global(nn.Module):
         return torch.cat([p5, p4, p3, p2], dim=1)
 
     def _upsample_add(self, x, y):
-        '''Upsample and add two feature maps.
+        """Upsample and add two feature maps.
         Args:
           x: (Variable) top feature map to be upsampled.
           y: (Variable) lateral feature map.
@@ -66,7 +67,7 @@ class fpn_module_global(nn.Module):
         conv2d feature map size: [N,_,8,8] ->
         upsampled feature map size: [N,_,16,16]
         So we choose bilinear upsample which supports arbitrary output sizes.
-        '''
+        """
         _, _, H, W = y.size()
         up_x = F.interpolate(x, size=(H, W), **self._up_kwargs)
 
@@ -81,8 +82,8 @@ class fpn_module_global(nn.Module):
             p4 = self._upsample_add(p5, self.latlayer1(c4))
             p3 = self._upsample_add(p4, self.latlayer2(c3))
             p2 = self._upsample_add(p3, self.latlayer3(c2))
-        else:
 
+        else:
             p5 = self.toplayer_ext(torch.cat((c5, c5_ext), dim=1))
             p4 = self._upsample_add(p5, self.latlayer1_ext(torch.cat((c4, c4_ext), dim=1)))
             p3 = self._upsample_add(p4, self.latlayer2_ext(torch.cat((c3, c3_ext), dim=1)))
@@ -188,7 +189,7 @@ class fpn_module_local(nn.Module):
         return torch.cat([p5, p4, p3, p2], dim=1)
 
     def _upsample_add(self, x, y):
-        '''Upsample and add two feature maps.
+        """Upsample and add two feature maps.
         Args:
           x: (Variable) top feature map to be upsampled.
           y: (Variable) lateral feature map.
@@ -202,7 +203,7 @@ class fpn_module_local(nn.Module):
         conv2d feature map size: [N,_,8,8] ->
         upsampled feature map size: [N,_,16,16]
         So we choose bilinear upsample which supports arbitrary output sizes.
-        '''
+        """
         _, _, H, W = y.size()
         return F.interpolate(x, size=(H, W), **self._up_kwargs) + y
 
@@ -250,6 +251,7 @@ class fpn_module_local(nn.Module):
             p2 = self.smooth4_1(
                 torch.cat([p2] + [F.interpolate(ps0_ext[3][0], size=p2.size()[2:], **self._up_kwargs)], dim=1))
         ps1 = [p5, p4, p3, p2]
+
         if mode == 4:
             p5 = self.smooth1_2_local(p5)
             p4 = self.smooth2_2_local(p4)
@@ -553,6 +555,11 @@ class GlNetNeck(nn.Module):
             if self.patch_n == 0:
                 self.c2_g, self.c3_g, self.c4_g, self.c5_g = global_model.module.resnet_global.forward(image_global)
 
+                ######################################################################
+                # TODO:测试不同特征层对检测结果的影响
+                self.c5_g = torch.zeros_like(self.c5_g)
+                ######################################################################
+
                 self.ps0_g, self.ps1_g, self.ps2_g = global_model.module.fpn_global.forward(
                     self.c2_g, self.c3_g, self.c4_g, self.c5_g, mode=2)
 
@@ -664,6 +671,10 @@ class GlNetNeck(nn.Module):
         if mode == 1:
             # train global model
             c2_g, c3_g, c4_g, c5_g = self.resnet_global.forward(image_global)
+            ######################################################################
+            # TODO:测试不同特征层对检测结果的影响
+            c5_g = torch.zeros_like(c5_g)
+            ######################################################################
             feat = self.fpn_global.forward(c2_g, c3_g, c4_g, c5_g, mode=1)
             return feat
         elif mode == 2 or mode == 4:
@@ -671,36 +682,40 @@ class GlNetNeck(nn.Module):
                 if self.patch_n == 0:
                     self.c2_g, self.c3_g, self.c4_g, self.c5_g = self.resnet_global.forward(image_global)
                     # # output, ps0, ps1, ps2, ps3  #self.output_g,
-                    self.ps0_g, self.ps1_g, self.ps2_g = self.fpn_global.forward(self.c2_g, self.c3_g, self.c4_g,
-                                                                                 self.c5_g)
+                    ######################################################################
+                    # TODO:测试不同特征层对检测结果的影响
+                    self.c5_g = torch.zeros_like(self.c5_g)
+                    ######################################################################
+                    self.ps0_g, self.ps1_g, self.ps2_g = self.fpn_global.forward(
+                        self.c2_g,
+                        self.c3_g,
+                        self.c4_g,
+                        self.c5_g)
                 self.patch_n += patches.size()[0]
                 self.patch_n %= n_patch
             c2_l, c3_l, c4_l, c5_l = self.resnet_local.forward(patches)
             # ps3 = [p5, p4, p3, p2]
-            ps3_l = self.fpn_local.forward(c2_l, c3_l, c4_l, c5_l,
-                                           self._crop_global(self.c2_g, top_lefts,
-                                                             ratio),
-                                           self._crop_global(self.c3_g, top_lefts,
-                                                             ratio),
-                                           self._crop_global(self.c4_g, top_lefts,
-                                                             ratio),
-                                           self._crop_global(self.c5_g, top_lefts,
-                                                             ratio),
-                                           [self._crop_global(f, top_lefts, ratio) for f
-                                            in self.ps0_g],
-                                           [self._crop_global(f, top_lefts, ratio) for f
-                                            in self.ps1_g],
-                                           [self._crop_global(f, top_lefts, ratio) for f
-                                            in self.ps2_g],
-                                           mode=mode)
+            ps3_l = self.fpn_local.forward(
+                c2_l, c3_l, c4_l, c5_l,
+                self._crop_global(self.c2_g, top_lefts, ratio),
+                self._crop_global(self.c3_g, top_lefts, ratio),
+                self._crop_global(self.c4_g, top_lefts, ratio),
+                self._crop_global(self.c5_g, top_lefts, ratio),
+                [self._crop_global(f, top_lefts, ratio) for f in self.ps0_g],
+                [self._crop_global(f, top_lefts, ratio) for f in self.ps1_g],
+                [self._crop_global(f, top_lefts, ratio) for f in self.ps2_g],
+                mode=mode)
             p6 = F.max_pool2d(ps3_l[0], (1, 1), (2, 2))
             result = [ps3_l[3], ps3_l[2], ps3_l[1], ps3_l[0], p6]
             return result
 
         elif mode == 3:
             assert 'mode1' or 'global' in self.mode1_work_dir, 'please check config file->model->neck->mode1_work_dir'
-            weight_path = os.path.join(self.mode1_work_dir, 'epoch_50.pth')
+            weight_path = os.path.join(self.mode1_work_dir, 'epoch_30.pth')
             assert os.path.isfile(weight_path), 'please run mode1 first'
+
+            logger = get_root_logger()
+            logger.info(f'mode3 load state from mode1 {weight_path}')
 
             global_fixed = GlNetNeck(2)
             global_fixed = nn.DataParallel(global_fixed)
@@ -711,24 +726,29 @@ class GlNetNeck(nn.Module):
             trained_partial_item = trained_partial.get("state_dict")  # 'neck.resnet_global.conv1.weight'
             from collections import OrderedDict
             new_state_dict = OrderedDict()  # 新建一个model
+
             for k, v in trained_partial_item.items():
                 if 'neck' in k:
                     name = "module" + k[4:]
-
                     new_state_dict[name] = v
+
             pretrained_dict = {k: v for k, v in new_state_dict.items() if k in state and "global" in k}
             state.update(pretrained_dict)
             global_fixed.load_state_dict(state)
             global_fixed.eval()
             i_patch = 0
-            while i_patch < len(top_lefts[0]):
-                self.collect_local_fm(image_global,
-                                      patches[0][i_patch], ratio[0], top_lefts[0],
-                                      [i_patch, i_patch + 1], 1,
-                                      global_model=global_fixed,
-                                      template=templates[0],
-                                      n_patch_all=len(top_lefts[0]))
 
+            while i_patch < len(top_lefts[0]):
+                self.collect_local_fm(
+                    image_global,
+                    patches[0][i_patch],
+                    ratio=ratio[0],
+                    top_lefts=top_lefts[0],
+                    oped=[i_patch, i_patch + 1],
+                    batch_size=1,
+                    global_model=global_fixed,
+                    template=templates[0],
+                    n_patch_all=len(top_lefts[0]))
                 i_patch += 1
 
             c2_g, c3_g, c4_g, c5_g = self.resnet_global.forward(image_global)

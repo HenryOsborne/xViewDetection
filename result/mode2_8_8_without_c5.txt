@@ -1,0 +1,43 @@
+2021-09-07 00:00:20
+ Average Precision  (AP) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.432
+ Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.590
+ Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.679
+
+2021-09-07 00:23:00
+ Average Precision  (AP) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.432
+ Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.590
+ Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.679
+ Average Precision  (AP) @[ IoU=0.50      | Score= 0.3 | area= small | maxDets=100000 ] = 0.211
+ Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area= small | maxDets=100000 ] = 0.309
+ Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area= small | maxDets=100000 ] = 0.704
+ Average Precision  (AP) @[ IoU=0.50      | Score= 0.3 | area=medium | maxDets=100000 ] = 0.452
+ Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area=medium | maxDets=100000 ] = 0.613
+ Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area=medium | maxDets=100000 ] = 0.679
+ Average Precision  (AP) @[ IoU=0.50      | Score= 0.3 | area= large | maxDets=100000 ] = 0.504
+ Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area= large | maxDets=100000 ] = 0.636
+ Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area= large | maxDets=100000 ] = 0.679
+ Average Precision  (AP) @[ IoU=0.75      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.046
+ Average Recall     (AR) @[ IoU=0.75      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.141
+ Precision          (PR) @[ IoU=0.75      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.207
+ Average Precision  (AP) @[ IoU=0.75      | Score= 0.3 | area= small | maxDets=100000 ] = 0.005
+ Average Recall     (AR) @[ IoU=0.75      | Score= 0.3 | area= small | maxDets=100000 ] = 0.028
+ Precision          (PR) @[ IoU=0.75      | Score= 0.3 | area= small | maxDets=100000 ] = 0.117
+ Average Precision  (AP) @[ IoU=0.75      | Score= 0.3 | area=medium | maxDets=100000 ] = 0.039
+ Average Recall     (AR) @[ IoU=0.75      | Score= 0.3 | area=medium | maxDets=100000 ] = 0.138
+ Precision          (PR) @[ IoU=0.75      | Score= 0.3 | area=medium | maxDets=100000 ] = 0.185
+ Average Precision  (AP) @[ IoU=0.75      | Score= 0.3 | area= large | maxDets=100000 ] = 0.144
+ Average Recall     (AR) @[ IoU=0.75      | Score= 0.3 | area= large | maxDets=100000 ] = 0.280
+ Precision          (PR) @[ IoU=0.75      | Score= 0.3 | area= large | maxDets=100000 ] = 0.339
+ Average Precision  (AP) @[ IoU=0.50:0.95 | Score= 0.3 | area=   all | maxDets=100000 ] = 0.139
+ Average Recall     (AR) @[ IoU=0.50:0.95 | Score= 0.3 | area=   all | maxDets=100000 ] = 0.232
+ Precision          (PR) @[ IoU=0.50:0.95 | Score= 0.3 | area=   all | maxDets=100000 ] = 0.302
+ Average Precision  (AP) @[ IoU=0.50:0.95 | Score= 0.3 | area= small | maxDets=100000 ] = 0.050
+ Average Recall     (AR) @[ IoU=0.50:0.95 | Score= 0.3 | area= small | maxDets=100000 ] = 0.087
+ Precision          (PR) @[ IoU=0.50:0.95 | Score= 0.3 | area= small | maxDets=100000 ] = 0.302
+ Average Precision  (AP) @[ IoU=0.50:0.95 | Score= 0.3 | area=medium | maxDets=100000 ] = 0.140
+ Average Recall     (AR) @[ IoU=0.50:0.95 | Score= 0.3 | area=medium | maxDets=100000 ] = 0.238
+ Precision          (PR) @[ IoU=0.50:0.95 | Score= 0.3 | area=medium | maxDets=100000 ] = 0.302
+ Average Precision  (AP) @[ IoU=0.50:0.95 | Score= 0.3 | area= large | maxDets=100000 ] = 0.215
+ Average Recall     (AR) @[ IoU=0.50:0.95 | Score= 0.3 | area= large | maxDets=100000 ] = 0.317
+ Precision          (PR) @[ IoU=0.50:0.95 | Score= 0.3 | area= large | maxDets=100000 ] = 0.302
+

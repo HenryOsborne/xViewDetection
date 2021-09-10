@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="gl_ga_mode3_8_8_4" type="PythonConfigurationType" factoryName="Python" folderName="GL">
+  <configuration default="false" name="gl_ga_mode3_8_8_4" type="PythonConfigurationType" factoryName="Python" folderName="GLGA">
     <module name="mmdetection" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
