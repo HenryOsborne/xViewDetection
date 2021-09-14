@@ -593,8 +593,7 @@ def det(args):
 def set_param(self):
     p = self.params
 
-    ########################################################################################
-    # 调用cocoeval时所需的参数
+    ############################ 调用cocoeval时所需的参数 ########################################
     p.maxDets = [100000]
     if args.iou_mode == 'single':
         p.iouThrs = np.array([0.5])
@@ -619,7 +618,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='MMDet test detector')
 
     #####################################################################################################
-    parser.add_argument('--work_dir', default='work_dirs/faster_global_swin_neck')
+    parser.add_argument('--work_dir', default='work_dirs/faster_global_resnet_neck_pa')
     # please point out work_dir in this place
     parser.add_argument('--score', default=0.3, type=float)
     # drop result if result's score small than args.score

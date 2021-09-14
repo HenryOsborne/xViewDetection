@@ -2,33 +2,29 @@ img_scale = (800, 800)
 # model settings
 model = dict(
     type='FasterRCNN',
-    pretrained='points/swin_tiny_patch4_window7_224.pth',
+    pretrained='torchvision://resnet50',  # 'torchvision://resnet50','modelzoo://resnet50',
     backbone=dict(
-        type='SwinTransformer',
-        embed_dim=96,
-        depths=[2, 2, 6, 2],
-        num_heads=[3, 6, 12, 24],
-        window_size=7,
-        ape=True,
-        drop_path_rate=0.1,
-        patch_norm=True,
-        use_checkpoint=False,
-    ),
+        type='ResNet',
+        depth=50,
+        num_stages=4,
+        out_indices=(0, 1, 2, 3),
+        frozen_stages=1,
+        style='pytorch'),
     neck=dict(
         type='MyNeck',
-        in_channels=[96, 192, 384, 768],
+        in_channels=[256, 512, 1024, 2048],
         out_channels=256),
     rpn_head=dict(
         type='RPNHead',
         in_channels=256,
         feat_channels=256,
         ##################################################################
-        # in global mode, anchor scales shoule be 4
+        # in global mode ,anchor scales shoule be 4
         anchor_generator=dict(
             type='AnchorGenerator',
             scales=[4],
             ratios=[0.5, 1.0, 2.0],
-            strides=[4, 8, 16, 32, 64]),  # [4]
+            strides=[4, 8, 16, 32, 64]),
         ##################################################################
         loss_cls=dict(
             type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
@@ -185,7 +181,7 @@ log_config = dict(
 runner = dict(type='EpochBasedRunner', max_epochs=50)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/faster_global_swin_neck'
+work_dir = './work_dirs/faster_global_resnet_neck'
 load_from = None
 resume_from = None
 workflow = [('train', 1)]

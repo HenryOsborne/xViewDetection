@@ -17,7 +17,8 @@ model = dict(
     neck=dict(
         type='MyNeck',
         in_channels=[96, 192, 384, 768],
-        out_channels=256),
+        out_channels=256,
+        use_path_augment=True),
     rpn_head=dict(
         type='RPNHead',
         in_channels=256,
@@ -28,7 +29,7 @@ model = dict(
             type='AnchorGenerator',
             scales=[4],
             ratios=[0.5, 1.0, 2.0],
-            strides=[4, 8, 16, 32, 64]),  # [4]
+            strides=[4, 8, 16, 32, 64]),
         ##################################################################
         loss_cls=dict(
             type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
@@ -185,7 +186,7 @@ log_config = dict(
 runner = dict(type='EpochBasedRunner', max_epochs=50)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/faster_global_swin_neck'
+work_dir = './work_dirs/faster_global_swin_pa'
 load_from = None
 resume_from = None
 workflow = [('train', 1)]

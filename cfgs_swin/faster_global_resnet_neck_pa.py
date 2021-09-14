@@ -1,41 +1,29 @@
-img_scale = (3000, 3000)
+img_scale = (800, 800)
 # model settings
 model = dict(
-    type='LocalFasterRCNN',
-    ##################################################################
-    # param for split global images,
-    # p_size : split size
-    # batch_size : seleted splited images for train
-    p_size=(800, 800),
-    batch_size=2,
-    ori_shape=img_scale,
-    ##################################################################
-    pretrained='points/swin_tiny_patch4_window7_224.pth',
+    type='FasterRCNN',
+    pretrained='torchvision://resnet50',  # 'torchvision://resnet50','modelzoo://resnet50',
     backbone=dict(
-        type='SwinTransformer',
-        embed_dim=96,
-        depths=[2, 2, 6, 2],
-        num_heads=[3, 6, 12, 24],
-        window_size=7,
-        ape=False,
-        drop_path_rate=0.1,
-        patch_norm=True,
-        use_checkpoint=False
-    ),
+        type='ResNet',
+        depth=50,
+        num_stages=4,
+        out_indices=(0, 1, 2, 3),
+        frozen_stages=1,
+        style='pytorch'),
     neck=dict(
-        type='FPN',
-        in_channels=[96, 192, 384, 768],
+        type='MyNeck',
+        in_channels=[256, 512, 1024, 2048],
         out_channels=256,
-        num_outs=5),
+        use_path_augment=True),
     rpn_head=dict(
         type='RPNHead',
         in_channels=256,
         feat_channels=256,
         ##################################################################
-        # in local mode ,anchor scales shoule be 8
+        # in global mode ,anchor scales shoule be 4
         anchor_generator=dict(
             type='AnchorGenerator',
-            scales=[8],
+            scales=[4],
             ratios=[0.5, 1.0, 2.0],
             strides=[4, 8, 16, 32, 64]),
         ##################################################################
@@ -67,6 +55,10 @@ model = dict(
                 pos_iou_thr=0.7,
                 neg_iou_thr=0.3,
                 min_pos_iou=0.3,
+                # if GT is too large, could lead to the explosion of GPU memory
+                # can change the value of gpu_assign_thr
+                # if number of GT > gpu_assign_thr, then use cpu to claculator iou
+                gpu_assign_thr=-1,
                 ignore_iof_thr=-1),
             sampler=dict(
                 type='RandomSampler',
@@ -77,20 +69,18 @@ model = dict(
             allowed_border=0,
             pos_weight=-1,
             debug=False),
-        ##################################################################
         rpn_proposal=dict(
-            nms_pre=2000,
-            nms_post=2000,
-            max_per_img=2000,
+            nms_pre=10000,
+            nms_post=10000,
+            max_per_img=10000,
             nms=dict(type='nms', iou_threshold=0.7),
             min_bbox_size=0),
-        ##################################################################
         rcnn=dict(
             assigner=dict(
                 type='MaxIoUAssigner',
-                pos_iou_thr=0.6,
-                neg_iou_thr=0.6,
-                min_pos_iou=0.6,
+                pos_iou_thr=0.5,
+                neg_iou_thr=0.5,
+                min_pos_iou=0.5,
                 ignore_iof_thr=-1),
             sampler=dict(
                 type='RandomSampler',
@@ -101,16 +91,18 @@ model = dict(
             pos_weight=-1,
             debug=False)),
     test_cfg=dict(
-        ##################################################################
         rpn=dict(
-            nms_pre=2000,
-            nms_post=2000,
-            max_per_img=2000,
+            nms_pre=10000,
+            nms_post=10000,
+            max_per_img=10000,
             nms=dict(type='nms', iou_threshold=0.7),
             min_bbox_size=0),
-        ##################################################################
         rcnn=dict(
-            score_thr=0.3, nms=dict(type='nms', iou_threshold=0.2), max_per_img=2000)
+            # score_thr=0.05, nms=dict(type='nms', iou_thr=0.5), max_per_img=2000)
+            score_thr=0.3, nms=dict(type='nms', iou_threshold=0.2), max_per_img=10000)
+        # score_thr=0.05, nms=dict(type='soft_nms', iou_thr=0.15, min_score=0.3) , max_per_img=2000)
+        # soft-nms is also supported for rcnn testing
+        # e.g., nms=dict(type='soft_nms', iou_thr=0.5, min_score=0.05)
     )
 )
 # model training and testing settings
@@ -118,11 +110,13 @@ model = dict(
 # dataset settings
 dataset_type = 'XviewDataset'
 data_root = 'data/xview/'
+
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations', with_bbox=True),
+    # dict(type='Albu', transforms = [{"type": 'RandomRotate90'}]),#数据增强
     dict(type='Resize', img_scale=img_scale, keep_ratio=False),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
@@ -150,7 +144,7 @@ data = dict(
     workers_per_gpu=2,
     train=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/train_local.json',
+        ann_file=data_root + 'annotations/instances_train2017.json',
         img_prefix=data_root + 'images/',
         pipeline=train_pipeline),
     val=dict(
@@ -164,6 +158,8 @@ data = dict(
         img_prefix=data_root + 'images/',
         pipeline=test_pipeline))
 # optimizer
+
+evaluation = dict(interval=51, metric='bbox')
 optimizer = dict(type='SGD', lr=0.0025, momentum=0.9, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 # learning policy
@@ -172,7 +168,7 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=500,
     warmup_ratio=1.0 / 3,
-    step=[45, 48])  # step=[45, 48])
+    step=[45, 48])
 checkpoint_config = dict(interval=10)
 # yapf:disable
 log_config = dict(
@@ -183,11 +179,10 @@ log_config = dict(
     ])
 # yapf:enable
 # runtime settings
-evaluation = dict(interval=51, metric='bbox')
 runner = dict(type='EpochBasedRunner', max_epochs=50)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/faster_local_swin'
+work_dir = './work_dirs/faster_global_resnet_neck_pa'
 load_from = None
 resume_from = None
 workflow = [('train', 1)]

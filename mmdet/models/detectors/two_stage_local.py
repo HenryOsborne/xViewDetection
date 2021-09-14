@@ -331,11 +331,11 @@ class TwoStageDetectorLocal(BaseDetector):
         return zero_patch
 
     def global_to_patch(self, images, p_size):
-        '''
+        """
         image/label => patches
         p_size: patch size
         return: list of PIL patch images; coordinates: images->patches; ratios: (h, w)
-        '''
+        """
         len_image = len(images)
 
         patches = []

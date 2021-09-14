@@ -15,7 +15,7 @@ class TransEncoder(nn.Module):
         self.input_proj = nn.Conv2d(in_channel, dim, kernel_size=(1, 1))
         self.encoder = BasicLayer(dim=dim, depth=depth, num_heads=num_heads)
         self.norm = nn.LayerNorm(dim)
-        self.output_proj = nn.Conv2d(dim, in_channel, kernel_size=(1, 1))
+        self.output_proj = nn.Conv2d(dim, dim, kernel_size=(1, 1))
 
     def forward(self, x):
         H, W = x.size(-2), x.size(-1)
