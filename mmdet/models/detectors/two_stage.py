@@ -1,5 +1,8 @@
 import torch
 import torch.nn as nn
+import numpy as np
+from torchvision import transforms
+import os
 
 # from mmdet.core import bbox2result, bbox2roi, build_assigner, build_sampler
 from ..builder import DETECTORS, build_backbone, build_head, build_neck
@@ -189,6 +192,19 @@ class TwoStageDetector(BaseDetector):
         assert self.with_bbox, 'Bbox head must be implemented.'
 
         x = self.extract_feat(img)
+
+        show_feature = True
+
+        if show_feature:
+            from PIL import Image
+            feature = x[0][0][0].cpu()
+            feature = 1.0 / (1 + np.exp(-1 * feature))
+            feature = np.round(feature * 255)
+            img = transforms.ToPILImage()(feature).convert('RGB')
+            img = img.resize((800, 800), Image.ANTIALIAS)
+            img_name = img_metas[0]['ori_filename'].split('.')[0]
+            os.makedirs('feature', exist_ok=True)
+            img.save('./feature/' + str(img_name) + '_p2.jpg')
 
         # get origin input shape to onnx dynamic input shape
         if torch.onnx.is_in_onnx_export():

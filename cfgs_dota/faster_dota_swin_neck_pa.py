@@ -2,19 +2,23 @@ img_scale = (800, 800)
 # model settings
 model = dict(
     type='FasterRCNN',
-    pretrained='torchvision://resnet50',  # 'torchvision://resnet50','modelzoo://resnet50',
+    pretrained='points/swin_tiny_patch4_window7_224.pth',
     backbone=dict(
-        type='ResNet',
-        depth=50,
-        num_stages=4,
-        out_indices=(0, 1, 2, 3),
-        frozen_stages=1,
-        style='pytorch'),
+        type='SwinTransformer',
+        embed_dim=96,
+        depths=[2, 2, 6, 2],
+        num_heads=[3, 6, 12, 24],
+        window_size=7,
+        ape=True,
+        drop_path_rate=0.1,
+        patch_norm=True,
+        use_checkpoint=False,
+    ),
     neck=dict(
-        type='FPN',
-        in_channels=[256, 512, 1024, 2048],
+        type='MyNeck',
+        in_channels=[96, 192, 384, 768],
         out_channels=256,
-        num_outs=5),
+        use_path_augment=True),
     rpn_head=dict(
         type='RPNHead',
         in_channels=256,
@@ -42,7 +46,7 @@ model = dict(
             in_channels=256,
             fc_out_channels=1024,
             roi_feat_size=7,
-            num_classes=1,
+            num_classes=15,
             reg_class_agnostic=False,
             loss_cls=dict(
                 type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0),
@@ -58,7 +62,7 @@ model = dict(
                 # if GT is too large, could lead to the explosion of GPU memory
                 # can change the value of gpu_assign_thr
                 # if number of GT > gpu_assign_thr, then use cpu to claculator iou
-                gpu_assign_thr=-1,
+                gpu_assign_thr=800,
                 ignore_iof_thr=-1),
             sampler=dict(
                 type='RandomSampler',
@@ -108,8 +112,8 @@ model = dict(
 # model training and testing settings
 
 # dataset settings
-dataset_type = 'XviewDataset'
-data_root = 'data/xview/'
+dataset_type = 'DotaDataset'
+data_root = 'data/dota/'
 
 img_norm_cfg = dict(
     mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
@@ -144,22 +148,22 @@ data = dict(
     workers_per_gpu=2,
     train=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/instances_train2017.json',
-        img_prefix=data_root + 'images/',
+        ann_file=data_root + 'train/DOTA_train.json',
+        img_prefix=data_root + 'train/images/',
         pipeline=train_pipeline),
     val=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/instances_val2017.json',
-        img_prefix=data_root + 'images/',
+        ann_file=data_root + 'val/DOTA_val.json',
+        img_prefix=data_root + 'val/images/',
         pipeline=test_pipeline),
     test=dict(
         type=dataset_type,
-        ann_file=data_root + 'annotations/instances_val2017.json',
-        img_prefix=data_root + 'images/',
+        ann_file=data_root + 'val/DOTA_val.json',
+        img_prefix=data_root + 'val/images/',
         pipeline=test_pipeline))
 # optimizer
-
-evaluation = dict(interval=1, metric='bbox', mode='global')
+custom_hooks = [dict(type='NumClassCheckHook')]
+evaluation = dict(interval=51, metric='bbox')
 optimizer = dict(type='SGD', lr=0.0025, momentum=0.9, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 # learning policy
@@ -182,7 +186,7 @@ log_config = dict(
 runner = dict(type='EpochBasedRunner', max_epochs=50)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/faster_global'
+work_dir = './work_dirs/dota/faster_dota_swin_neck_pa'
 load_from = None
 resume_from = None
 workflow = [('train', 1)]

@@ -1,3 +1,5 @@
+import warnings
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -8,7 +10,6 @@ from mmdet.models.necks.TransNeck import TransEncoder, CBAM
 from mmdet.models.builder import NECKS
 
 
-@NECKS.register_module()
 class MyNeck(nn.Module):
     def __init__(self,
                  in_channels,
@@ -30,45 +31,45 @@ class MyNeck(nn.Module):
 
         # input conv
         self.conv_c2 = ConvModule(in_channels[0], mid_channels[0], 1, inplace=False)
-        self.conv_c3 = ConvModule(in_channels[1], mid_channels[1], 1, inplace=False)
-        self.conv_c4 = ConvModule(in_channels[2], mid_channels[2], 1, inplace=False)
-        self.conv_c5 = ConvModule(in_channels[3], mid_channels[3], 1, inplace=False)
+        self.conv_c3 = ConvModule(in_channels[1], mid_channels[0], 1, inplace=False)
+        self.conv_c4 = ConvModule(in_channels[2], mid_channels[0], 1, inplace=False)
+        self.conv_c5 = ConvModule(in_channels[3], mid_channels[0], 1, inplace=False)
 
         # c5 encode
-        self.last_layer1 = TransEncoder(mid_channels[-1], mid_channels[-1], depth=depth, num_heads=num_heads)
-        self.last_layer2 = TransEncoder(mid_channels[-1], mid_channels[-1], depth=depth, num_heads=num_heads)
-        self.last_layer3 = TransEncoder(mid_channels[-1], mid_channels[-1], depth=depth, num_heads=num_heads)
+        self.last_layer1 = TransEncoder(mid_channels[0], mid_channels[0], depth=depth, num_heads=num_heads)
+        self.last_layer2 = TransEncoder(mid_channels[0], mid_channels[0], depth=depth, num_heads=num_heads)
+        self.last_layer3 = TransEncoder(mid_channels[0], mid_channels[0], depth=depth, num_heads=num_heads)
 
         self.out_layer_p2 = TransEncoder(mid_channels[0], mid_channels[0], depth=depth, num_heads=num_heads)
         if self.use_path_augment:
-            self.out_layer_p3 = TransEncoder(mid_channels[0], mid_channels[1], depth=depth, num_heads=num_heads)
-            self.out_layer_p4_1 = TransEncoder(mid_channels[1], mid_channels[2], depth=depth, num_heads=num_heads)
-            self.out_layer_p4_2 = TransEncoder(mid_channels[2], mid_channels[2], depth=depth, num_heads=num_heads)
-            self.out_layer_p5_1 = TransEncoder(mid_channels[2], mid_channels[3], depth=depth, num_heads=num_heads)
-            self.out_layer_p5_2 = TransEncoder(mid_channels[3], mid_channels[3], depth=depth, num_heads=num_heads)
-            self.out_layer_p5_3 = TransEncoder(mid_channels[3], mid_channels[3], depth=depth, num_heads=num_heads)
+            self.out_layer_p3 = TransEncoder(mid_channels[0], mid_channels[0], depth=depth, num_heads=num_heads)
+            self.out_layer_p4_1 = TransEncoder(mid_channels[0], mid_channels[0], depth=depth, num_heads=num_heads)
+            self.out_layer_p4_2 = TransEncoder(mid_channels[0], mid_channels[0], depth=depth, num_heads=num_heads)
+            self.out_layer_p5_1 = TransEncoder(mid_channels[0], mid_channels[0], depth=depth, num_heads=num_heads)
+            self.out_layer_p5_2 = TransEncoder(mid_channels[0], mid_channels[0], depth=depth, num_heads=num_heads)
+            self.out_layer_p5_3 = TransEncoder(mid_channels[0], mid_channels[0], depth=depth, num_heads=num_heads)
 
-        self.cbam1 = CBAM(mid_channels[2])
-        self.cbam2 = CBAM(mid_channels[1])
+        self.cbam1 = CBAM(mid_channels[0])
+        self.cbam2 = CBAM(mid_channels[0])
         if self.use_path_augment:
             self.cbam3 = CBAM(mid_channels[0])
-            self.cbam4 = CBAM(mid_channels[1])
-            self.cbam5 = CBAM(mid_channels[2])
+            self.cbam4 = CBAM(mid_channels[0])
+            self.cbam5 = CBAM(mid_channels[0])
 
         if self.use_path_augment:
             self.conv_pa_n2 = ConvModule(mid_channels[0], mid_channels[0], kernel_size=3, stride=2, padding=1)
-            self.conv_pa_n3 = ConvModule(mid_channels[1], mid_channels[1], kernel_size=3, stride=2, padding=1)
-            self.conv_pa_n4 = ConvModule(mid_channels[2], mid_channels[2], kernel_size=3, stride=2, padding=1)
+            self.conv_pa_n3 = ConvModule(mid_channels[0], mid_channels[0], kernel_size=3, stride=2, padding=1)
+            self.conv_pa_n4 = ConvModule(mid_channels[0], mid_channels[0], kernel_size=3, stride=2, padding=1)
 
         self.lateral_convs = nn.ModuleList()
         for i in range(len(mid_channels) - 1, 0, -1):
-            l_conv = ConvModule(mid_channels[i], mid_channels[i - 1], 1, inplace=False)
+            l_conv = ConvModule(mid_channels[0], mid_channels[0], 1, inplace=False)
             self.lateral_convs.append(l_conv)
 
         self.fpn_conv_p2 = ConvModule(mid_channels[0], out_channels, 3, padding=1, inplace=False)
-        self.fpn_conv_p3 = ConvModule(mid_channels[1], out_channels, 3, padding=1, inplace=False)
-        self.fpn_conv_p4 = ConvModule(mid_channels[2], out_channels, 3, padding=1, inplace=False)
-        self.fpn_conv_p5 = ConvModule(mid_channels[3], out_channels, 3, padding=1, inplace=False)
+        self.fpn_conv_p3 = ConvModule(mid_channels[0], out_channels, 3, padding=1, inplace=False)
+        self.fpn_conv_p4 = ConvModule(mid_channels[0], out_channels, 3, padding=1, inplace=False)
+        self.fpn_conv_p5 = ConvModule(mid_channels[0], out_channels, 3, padding=1, inplace=False)
 
         self.init_weights()
 
@@ -149,17 +150,17 @@ class MyNeck(nn.Module):
 
 
 if __name__ == '__main__':
-    x = [torch.randn(1, 96, 200, 200),
-         torch.randn(1, 192, 100, 100),
-         torch.randn(1, 384, 50, 50),
-         torch.randn(1, 768, 25, 25)]
-    neck = MyNeck(in_channels=[96, 192, 384, 768], out_channels=256,use_path_augment=True)
-    y = neck(x)
-    print(y)
-    # z = [torch.randn(1, 256, 200, 200),
-    #      torch.randn(1, 512, 100, 100),
-    #      torch.randn(1, 1024, 50, 50),
-    #      torch.randn(1, 2048, 25, 25)]
-    # neck = MyNeck(in_channels=[256, 512, 1024, 2048], out_channels=256)
-    # y = neck(z)
+    # x = [torch.randn(1, 96, 200, 200),
+    #      torch.randn(1, 192, 100, 100),
+    #      torch.randn(1, 384, 50, 50),
+    #      torch.randn(1, 768, 25, 25)]
+    # neck = MyNeck(in_channels=[96, 192, 384, 768], out_channels=256)
+    # y = neck(x)
     # print(y)
+    z = [torch.randn(1, 256, 200, 200),
+         torch.randn(1, 512, 100, 100),
+         torch.randn(1, 1024, 50, 50),
+         torch.randn(1, 2048, 25, 25)]
+    neck = MyNeck(in_channels=[256, 512, 1024, 2048], out_channels=256, use_path_augment=True)
+    y = neck(z)
+    print(y)

@@ -15,9 +15,10 @@ from .glnet_1 import GlNetNeckK1
 from .glnet_3_1 import GlNetNeck_3_1
 from .glnet_pa import GlPaNetNeck
 from .TransNeck.neck import MyNeck
+from .TransNeck.FaPN import FAPN
 
 __all__ = [
     'FPN', 'BFP', 'ChannelMapper', 'HRFPN', 'NASFPN', 'FPN_CARAFE', 'PAFPN',
     'NASFCOS_FPN', 'RFP', 'YOLOV3Neck', 'FPG', 'GLNET_fpn', 'GlNetNeck',
-    'GlNetNeckK1', 'GlNetNeck_3_1', 'GlPaNetNeck', 'MyNeck'
+    'GlNetNeckK1', 'GlNetNeck_3_1', 'GlPaNetNeck', 'MyNeck', 'FAPN'
 ]

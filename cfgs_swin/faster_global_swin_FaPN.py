@@ -2,19 +2,22 @@ img_scale = (800, 800)
 # model settings
 model = dict(
     type='FasterRCNN',
-    pretrained='torchvision://resnet50',  # 'torchvision://resnet50','modelzoo://resnet50',
+    pretrained='points/swin_tiny_patch4_window7_224.pth',
     backbone=dict(
-        type='ResNet',
-        depth=50,
-        num_stages=4,
-        out_indices=(0, 1, 2, 3),
-        frozen_stages=1,
-        style='pytorch'),
+        type='SwinTransformer',
+        embed_dim=96,
+        depths=[2, 2, 6, 2],
+        num_heads=[3, 6, 12, 24],
+        window_size=7,
+        ape=True,
+        drop_path_rate=0.1,
+        patch_norm=True,
+        use_checkpoint=False,
+    ),
     neck=dict(
-        type='FPN',
-        in_channels=[256, 512, 1024, 2048],
-        out_channels=256,
-        num_outs=5),
+        type='FAPN',
+        in_channels=[96, 192, 384, 768],
+        out_channels=256),
     rpn_head=dict(
         type='RPNHead',
         in_channels=256,
@@ -159,7 +162,7 @@ data = dict(
         pipeline=test_pipeline))
 # optimizer
 
-evaluation = dict(interval=1, metric='bbox', mode='global')
+evaluation = dict(interval=51, metric='bbox')
 optimizer = dict(type='SGD', lr=0.0025, momentum=0.9, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 # learning policy
@@ -182,7 +185,7 @@ log_config = dict(
 runner = dict(type='EpochBasedRunner', max_epochs=50)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/faster_global'
+work_dir = './work_dirs/faster_global_swin_FaPN'
 load_from = None
 resume_from = None
 workflow = [('train', 1)]

@@ -7,30 +7,27 @@ from collections import OrderedDict
 import mmcv
 import numpy as np
 from mmcv.utils import print_log
-from pycocotools.coco import COCO
-from pycocotools.cocoeval import COCOeval
 from terminaltables import AsciiTable
 
 from mmdet.core import eval_recalls
+from .api_wrappers import COCO, COCOeval
 from .builder import DATASETS
 from .custom import CustomDataset
 
-try:
-    import pycocotools
-
-    if not hasattr(pycocotools, '__sphinx_mock__'):  # for doc generation
-        assert pycocotools.__version__ >= '12.0.2'
-except AssertionError:
-    raise AssertionError('Incompatible version of pycocotools is installed. '
-                         'Run pip uninstall pycocotools first. Then run pip '
-                         'install mmpycocotools to install open-mmlab forked '
-                         'pycocotools.')
+import time
+import datetime
+import copy
+from pycocotools import mask as maskUtils
 
 
 @DATASETS.register_module()
 class DotaDataset(CustomDataset):
-    CLASSES = ('plane','ship','storage-tank','baseball-diamond','tennis-court','basketball-court','ground-track-field',
-            'harbor','bridge','large-vehicle','small-vehicle','helicopter','roundabout','soccer-ball-field','swimming-pool','container-crane')
+    CLASSES = ('plane', 'baseball-diamond', 'bridge', 'ground-track-field',
+               'small-vehicle', 'large-vehicle', 'ship', 'tennis-court',
+               'basketball-court', 'storage-tank', 'soccer-ball-field',
+               'roundabout', 'harbor', 'swimming-pool', 'helicopter')
+
+    # v1.0 15 classes
 
     def load_annotations(self, ann_file):
         """Load annotation from COCO style annotation file.
@@ -47,10 +44,15 @@ class DotaDataset(CustomDataset):
         self.cat2label = {cat_id: i for i, cat_id in enumerate(self.cat_ids)}
         self.img_ids = self.coco.get_img_ids()
         data_infos = []
+        total_ann_ids = []
         for i in self.img_ids:
             info = self.coco.load_imgs([i])[0]
             info['filename'] = info['file_name']
             data_infos.append(info)
+            ann_ids = self.coco.get_ann_ids(img_ids=[i])
+            total_ann_ids.extend(ann_ids)
+        assert len(set(total_ann_ids)) == len(
+            total_ann_ids), f"Annotation ids in '{ann_file}' are not unique!"
         return data_infos
 
     def get_ann_info(self, idx):
@@ -218,6 +220,38 @@ class DotaDataset(CustomDataset):
                     json_results.append(data)
         return json_results
 
+    def det2json(self, results, mode):
+        json_results = []
+        for idx in range(len(self)):
+            img_id = self.img_ids[idx]
+            result = results[idx]
+            if mode == 'local':
+                imgInfo = self.data_infos[idx]
+                width = imgInfo['width']
+                height = imgInfo['height']
+                result[:, 0] = result[:, 0] * (width / 3000)
+                result[:, 1] = result[:, 1] * (height / 3000)
+                result[:, 2] = result[:, 2] * (width / 3000)
+                result[:, 3] = result[:, 3] * (height / 3000)
+                for i in result:
+                    data = dict()
+                    data['image_id'] = img_id
+                    data['bbox'] = self.xyxy2xywh(i[:-1])
+                    data['score'] = float(i[4])
+                    data['category_id'] = 1
+                    json_results.append(data)
+            elif mode == 'global':
+                for label in range(len(result)):
+                    bboxes = result[label]
+                    for i in range(bboxes.shape[0]):
+                        data = dict()
+                        data['image_id'] = img_id
+                        data['bbox'] = self.xyxy2xywh(bboxes[i])
+                        data['score'] = float(bboxes[i][4])
+                        data['category_id'] = self.cat_ids[label]
+                        json_results.append(data)
+        return json_results
+
     def _segm2json(self, results):
         """Convert instance segmentation results to COCO json style."""
         bbox_json_results = []
@@ -256,7 +290,7 @@ class DotaDataset(CustomDataset):
                     segm_json_results.append(data)
         return bbox_json_results, segm_json_results
 
-    def results2json(self, results, outfile_prefix):
+    def results2json(self, results, outfile_prefix, mode=None):
         """Dump the detection results to a COCO style json file.
 
         There are 3 types of results: proposals, bbox predictions, mask
@@ -264,6 +298,7 @@ class DotaDataset(CustomDataset):
         automatically recognize the type, and dump them to json files.
 
         Args:
+            mode: 'global' or 'local'
             results (list[list | tuple | ndarray]): Testing results of the
                 dataset.
             outfile_prefix (str): The filename prefix of the json files. If the
@@ -277,7 +312,7 @@ class DotaDataset(CustomDataset):
         """
         result_files = dict()
         if isinstance(results[0], list):
-            json_results = self._det2json(results)
+            json_results = self.det2json(results, mode)
             result_files['bbox'] = f'{outfile_prefix}.bbox.json'
             result_files['proposal'] = f'{outfile_prefix}.bbox.json'
             mmcv.dump(json_results, result_files['bbox'])
@@ -320,10 +355,11 @@ class DotaDataset(CustomDataset):
         ar = recalls.mean(axis=1)
         return ar
 
-    def format_results(self, results, jsonfile_prefix=None, **kwargs):
+    def format_results(self, results, jsonfile_prefix=None, mode=None, **kwargs):
         """Format the results to json (standard format for COCO evaluation).
 
         Args:
+            mode: 'global' or 'local'
             results (list[tuple | numpy.ndarray]): Testing results of the
                 dataset.
             jsonfile_prefix (str | None): The prefix of json files. It includes
@@ -337,15 +373,14 @@ class DotaDataset(CustomDataset):
         """
         assert isinstance(results, list), 'results must be a list'
         assert len(results) == len(self), (
-            'The length of results is not equal to the dataset len: {} != {}'.
-                format(len(results), len(self)))
+            'The length of results is not equal to the dataset len: {} != {}'.format(len(results), len(self)))
 
         if jsonfile_prefix is None:
             tmp_dir = tempfile.TemporaryDirectory()
             jsonfile_prefix = osp.join(tmp_dir.name, 'results')
         else:
             tmp_dir = None
-        result_files = self.results2json(results, jsonfile_prefix)
+        result_files = self.results2json(results, jsonfile_prefix, mode)
         return result_files, tmp_dir
 
     def evaluate(self,
@@ -353,13 +388,15 @@ class DotaDataset(CustomDataset):
                  metric='bbox',
                  logger=None,
                  jsonfile_prefix=None,
-                 classwise=False,
-                 proposal_nums=(100, 300, 1000),
+                 classwise=True,
+                 proposal_nums=(100000,),
                  iou_thrs=None,
-                 metric_items=None):
+                 metric_items=None,
+                 mode=None):
         """Evaluation in COCO protocol.
 
         Args:
+            mode: 'global' or 'local'
             results (list[list | tuple]): Testing results of the dataset.
             metric (str | list[str]): Metrics to be evaluated. Options are
                 'bbox', 'segm', 'proposal', 'proposal_fast'.
@@ -394,13 +431,12 @@ class DotaDataset(CustomDataset):
             if metric not in allowed_metrics:
                 raise KeyError(f'metric {metric} is not supported')
         if iou_thrs is None:
-            iou_thrs = np.linspace(
-                .5, 0.95, int(np.round((0.95 - .5) / .05)) + 1, endpoint=True)
+            iou_thrs = np.array([0.5])
         if metric_items is not None:
             if not isinstance(metric_items, list):
                 metric_items = [metric_items]
 
-        result_files, tmp_dir = self.format_results(results, jsonfile_prefix)
+        result_files, tmp_dir = self.format_results(results, jsonfile_prefix, mode)
 
         eval_results = OrderedDict()
         cocoGt = self.coco
@@ -434,25 +470,18 @@ class DotaDataset(CustomDataset):
 
             iou_type = 'bbox' if metric == 'proposal' else metric
             cocoEval = COCOeval(cocoGt, cocoDt, iou_type)
-            cocoEval.params.catIds = self.cat_ids
-            cocoEval.params.imgIds = self.img_ids
-            cocoEval.params.maxDets = list(proposal_nums)
-            cocoEval.params.iouThrs = iou_thrs
-            # mapping of cocoEval.stats
-            coco_metric_names = {
-                'mAP': 0,
-                'mAP_50': 1,
-                'mAP_75': 2,
-                'mAP_s': 3,
-                'mAP_m': 4,
-                'mAP_l': 5,
-                'AR@100': 6,
-                'AR@300': 7,
-                'AR@1000': 8,
-                'AR_s@1000': 9,
-                'AR_m@1000': 10,
-                'AR_l@1000': 11
-            }
+            set_param(cocoEval)
+            if len(cocoEval.params.areaRng) == 10:
+                coco_metric_names = {
+                    'AP': 0, 'AR': 1, 'PR': 2,
+                    'AP_s': 3, 'AR_s': 4, 'PR_s': 5,
+                    'AP_m': 6, 'AR_m': 7, 'PR_m': 8,
+                    'AP_l': 9, 'AR_l': 10, 'PR_l': 11,
+                }
+            else:
+                coco_metric_names = {
+                    'AP': 0, 'AR': 1, 'PR': 2,
+                }
             if metric_items is not None:
                 for metric_item in metric_items:
                     if metric_item not in coco_metric_names:
@@ -475,9 +504,9 @@ class DotaDataset(CustomDataset):
                         f'{cocoEval.stats[coco_metric_names[item]]:.3f}')
                     eval_results[item] = val
             else:
-                cocoEval.evaluate()
-                cocoEval.accumulate()
-                cocoEval.summarize()
+                coco_evaluate(cocoEval, mode)
+                coco_accumulate(cocoEval)
+                coco_summarize(cocoEval)
                 if classwise:  # Compute per-category AP
                     # Compute per-category AP
                     # from https://github.com/facebookresearch/detectron2/
@@ -513,9 +542,15 @@ class DotaDataset(CustomDataset):
                     print_log('\n' + table.table, logger=logger)
 
                 if metric_items is None:
-                    metric_items = [
-                        'mAP', 'mAP_50', 'mAP_75', 'mAP_s', 'mAP_m', 'mAP_l'
-                    ]
+                    if len(cocoEval.params.areaRng) == 10:
+                        metric_items = [
+                            'AP', 'AR', 'PR',
+                            'AP_s', 'AR_s', 'PR_s',
+                            'AP_m', 'AR_m', 'PR_m',
+                            'AP_l', 'AR_l', 'PR_l',
+                        ]
+                    else:
+                        metric_items = ['AP', 'AR', 'PR']
 
                 for metric_item in metric_items:
                     key = f'{metric}_{metric_item}'
@@ -523,10 +558,466 @@ class DotaDataset(CustomDataset):
                         f'{cocoEval.stats[coco_metric_names[metric_item]]:.3f}'
                     )
                     eval_results[key] = val
-                ap = cocoEval.stats[:6]
-                eval_results[f'{metric}_mAP_copypaste'] = (
-                    f'{ap[0]:.3f} {ap[1]:.3f} {ap[2]:.3f} {ap[3]:.3f} '
-                    f'{ap[4]:.3f} {ap[5]:.3f}')
         if tmp_dir is not None:
             tmp_dir.cleanup()
         return eval_results
+
+
+def computeIoU(self, imgId, catId):
+    p = self.params
+    if p.useCats:
+        gt = self._gts[imgId, catId]
+        dt = self._dts[imgId, catId]
+    else:
+        gt = [_ for cId in p.catIds for _ in self._gts[imgId, cId]]
+        dt = [_ for cId in p.catIds for _ in self._dts[imgId, cId]]
+    if len(gt) == 0 and len(dt) == 0:
+        return []
+    inds = np.argsort([-d['score'] for d in dt], kind='mergesort')
+    dt = [dt[i] for i in inds]
+
+    if p.iouType == 'segm':
+        g = [g['segmentation'] for g in gt]
+        d = [d['segmentation'] for d in dt]
+    elif p.iouType == 'bbox':
+        g = [g['bbox'] for g in gt]
+        d = [d['bbox'] for d in dt]
+    else:
+        raise Exception('unknown iouType for iou computation')
+
+    # compute iou between each dt and gt region
+    iscrowd = [int(o['iscrowd']) for o in gt]
+    ious = maskUtils.iou(d, g, iscrowd)
+    return ious
+
+
+def evaluateImg(self, imgId, catId, aRng, score, prog_bar, mode):
+    p = self.params
+    gts = self.cocoGt
+    images = gts.imgs
+    img_width = images[imgId]['width']
+    img_height = images[imgId]['height']
+
+    prog_bar.update()
+
+    if p.useCats:
+        gt = self._gts[imgId, catId]
+
+        dt = self._dts[imgId, catId]
+    else:
+        gt = [_ for cId in p.catIds for _ in self._gts[imgId, cId]]
+        dt = [_ for cId in p.catIds for _ in self._dts[imgId, cId]]
+    if len(gt) == 0 and len(dt) == 0:
+        return None
+    ################################### eval at resized image ###################################
+    for g in gt:
+        bbox_width = g['bbox'][2]
+        bbox_heigth = g['bbox'][3]
+
+        if mode == 'global':
+            resized_width = bbox_width * (800 / img_width)
+            resized_heigth = bbox_heigth * (800 / img_height)
+        elif mode == 'local':
+            resized_width = bbox_width * (3000 / img_width)
+            resized_heigth = bbox_heigth * (3000 / img_height)
+        else:
+            raise ValueError('Wrong mode')
+        resized_area = resized_width * resized_heigth
+
+        if g['ignore'] or (resized_area < aRng[0] or resized_area > aRng[1]):
+            g['_ignore'] = 1
+        else:
+            g['_ignore'] = 0
+    ################################### eval at original image ###################################
+    # for g in gt:
+    #     if g['ignore'] or (g['area'] < aRng[0] or g['area'] > aRng[1]):
+    #         g['_ignore'] = 1
+    #     else:
+    #         g['_ignore'] = 0
+    # ############################################################################################
+
+    # sort dt highest score first, sort gt ignore last
+    gtind = np.argsort([g['_ignore'] for g in gt], kind='mergesort')
+    gt = [gt[i] for i in gtind]
+
+    #################################################################################
+    dt = [d for d in dt if d['score'] > score]
+    #################################################################################
+
+    dtind = np.argsort([-d['score'] for d in dt], kind='mergesort')
+    dt = [dt[i] for i in dtind[0:p.maxDets[-1]]]
+    iscrowd = [int(o['iscrowd']) for o in gt]
+    # load computed ious
+    ious = self.ious[imgId, catId][:, gtind] if len(self.ious[imgId, catId]) > 0 else self.ious[imgId, catId]
+
+    T = len(p.iouThrs)
+    G = len(gt)
+    D = len(dt)
+    gtm = np.zeros((T, G))
+    dtm = np.zeros((T, D))
+    gtIg = np.array([g['_ignore'] for g in gt])
+    dtIg = np.zeros((T, D))
+    if not len(ious) == 0:
+        for tind, t in enumerate(p.iouThrs):
+            for dind, d in enumerate(dt):
+                # information about best match so far (m=-1 -> unmatched)
+                iou = min([t, 1 - 1e-10])
+                m = -1
+                for gind, g in enumerate(gt):
+                    # if this gt already matched, and not a crowd, continue
+                    if gtm[tind, gind] > 0 and not iscrowd[gind]:
+                        continue
+                    # if dt matched to reg gt, and on ignore gt, stop
+                    if m > -1 and gtIg[m] == 0 and gtIg[gind] == 1:
+                        break
+                    # continue to next gt unless better match made
+                    if ious[dind, gind] < iou:
+                        continue
+                    # if match successful and best so far, store appropriately
+                    iou = ious[dind, gind]
+                    m = gind
+                # if match made store id of match for both dt and gt
+                if m == -1:
+                    continue
+                dtIg[tind, dind] = gtIg[m]
+                dtm[tind, dind] = gt[m]['id']
+                gtm[tind, m] = d['id']
+    # set unmatched detections outside of area range to ignore
+    a = np.array([d['area'] < aRng[0] or d['area'] > aRng[1] for d in dt]).reshape((1, len(dt)))
+    dtIg = np.logical_or(dtIg, np.logical_and(dtm == 0, np.repeat(a, T, 0)))
+    # store results for given image and category
+    return {
+        'image_id': imgId,
+        'category_id': catId,
+        'aRng': aRng,
+        'score': score,
+        'maxDet': p.maxDets[-1],  # 100000
+        'dtIds': [d['id'] for d in dt],
+        'gtIds': [g['id'] for g in gt],
+        'dtMatches': dtm,
+        'gtMatches': gtm,
+        'dtScores': [d['score'] for d in dt],
+        'gtIgnore': gtIg,
+        'dtIgnore': dtIg,
+    }
+
+
+def coco_evaluate(self, mode):
+    tic = time.time()
+    print('Running per image evaluation...')
+    p = self.params
+    # add backward compatibility if useSegm is specified in params
+    print('Evaluate annotation type *{}*'.format(p.iouType))
+    p.imgIds = list(np.unique(p.imgIds))
+    if p.useCats:
+        p.catIds = list(np.unique(p.catIds))
+
+    self.params = p
+
+    self._prepare()
+    # loop through images, area range, max detection number
+    catIds = p.catIds if p.useCats else [-1]
+
+    self.ious = {(imgId, catId): computeIoU(self, imgId, catId) \
+                 for imgId in p.imgIds
+                 for catId in catIds}
+
+    ######################################################################################
+    prog_bar = mmcv.ProgressBar(len(self.params.imgIds) * len(self.params.areaRng) * len(self.params.catIds))
+    ######################################################################################
+    self.evalImgs = [evaluateImg(self, imgId, catId, areaRng, p.scoceThrs, prog_bar, mode)
+                     for catId in catIds
+                     for areaRng in p.areaRng
+                     for imgId in p.imgIds
+                     ]
+    self._paramsEval = copy.deepcopy(self.params)
+    toc = time.time()
+    print('DONE (t={:0.2f}s).'.format(toc - tic))
+
+
+def coco_accumulate(self, p=None):
+    print('Accumulating evaluation results...')
+    tic = time.time()
+    if not self.evalImgs:
+        print('Please run evaluate() first')
+    # allows input customized parameters
+    if p is None:
+        p = self.params
+    p.catIds = p.catIds if p.useCats == 1 else [-1]
+    T = len(p.iouThrs)
+    R = len(p.recThrs)
+    K = len(p.catIds) if p.useCats else 1
+    A = len(p.areaRng)
+    M = len(p.maxDets)
+    precision = -np.ones((T, R, K, A, M))  # -1 for the precision of absent categories
+    recall = -np.ones((T, K, A, M))
+    scores = -np.ones((T, R, K, A, M))
+    Pre = []
+
+    # create dictionary for future indexing
+    _pe = self._paramsEval
+    catIds = _pe.catIds if _pe.useCats else [-1]
+    setK = set(catIds)
+    setA = set(map(tuple, _pe.areaRng))
+    setM = set(_pe.maxDets)
+    setI = set(_pe.imgIds)
+    # get inds to evaluate
+    k_list = [n for n, k in enumerate(p.catIds) if k in setK]
+    m_list = [m for n, m in enumerate(p.maxDets) if m in setM]
+    a_list = [n for n, a in enumerate(map(lambda x: tuple(x), p.areaRng)) if a in setA]
+    i_list = [n for n, i in enumerate(p.imgIds) if i in setI]
+    I0 = len(_pe.imgIds)
+    A0 = len(_pe.areaRng)
+    # retrieve E at each category, area range, and max number of detections
+    for k, k0 in enumerate(k_list):
+        Nk = k0 * A0 * I0
+        for a, a0 in enumerate(a_list):
+            Na = a0 * I0
+            for m, maxDet in enumerate(m_list):
+                E = [self.evalImgs[Nk + Na + i] for i in i_list]
+                E = [e for e in E if not e is None]
+                if len(E) == 0:
+                    continue
+                dtScores = np.concatenate([e['dtScores'][0:maxDet] for e in E])
+
+                # different sorting method generates slightly different results.
+                # mergesort is used to be consistent as Matlab implementation.
+                inds = np.argsort(-dtScores, kind='mergesort')
+                dtScoresSorted = dtScores[inds]
+
+                dtm = np.concatenate([e['dtMatches'][:, 0:maxDet] for e in E], axis=1)[:, inds]
+                dtIg = np.concatenate([e['dtIgnore'][:, 0:maxDet] for e in E], axis=1)[:, inds]
+                gtIg = np.concatenate([e['gtIgnore'] for e in E])
+                npig = np.count_nonzero(gtIg == 0)
+                if npig == 0:
+                    continue
+                tps = np.logical_and(dtm, np.logical_not(dtIg))
+                fps = np.logical_and(np.logical_not(dtm), np.logical_not(dtIg))
+
+                tp_sum = np.cumsum(tps, axis=1).astype(dtype=np.float)
+                fp_sum = np.cumsum(fps, axis=1).astype(dtype=np.float)
+                for t, (tp, fp) in enumerate(zip(tp_sum, fp_sum)):
+                    tp = np.array(tp)
+                    fp = np.array(fp)
+                    nd = len(tp)
+                    rc = tp / npig
+                    pr = tp / (fp + tp + np.spacing(1))
+                    Pre.append(np.mean(pr))
+                    q = np.zeros((R,))
+                    ss = np.zeros((R,))
+
+                    if nd:
+                        recall[t, k, a, m] = rc[-1]
+                    else:
+                        recall[t, k, a, m] = 0
+
+                    # numpy is slow without cython optimization for accessing elements
+                    # use python array gets significant speed improvement
+                    pr = pr.tolist()
+                    q = q.tolist()
+
+                    for i in range(nd - 1, 0, -1):
+                        if pr[i] > pr[i - 1]:
+                            pr[i - 1] = pr[i]
+
+                    inds = np.searchsorted(rc, p.recThrs, side='left')
+                    try:
+                        for ri, pi in enumerate(inds):
+                            q[ri] = pr[pi]
+                            ss[ri] = dtScoresSorted[pi]
+                    except:
+                        pass
+                    precision[t, :, k, a, m] = np.array(q)
+                    scores[t, :, k, a, m] = np.array(ss)
+    self.eval = {
+        'params': p,
+        'counts': [T, R, K, A, M],
+        'date': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'precision': precision,
+        'Pr': Pre,
+        'recall': recall,
+        'scores': scores,
+    }
+    toc = time.time()
+    print('DONE (t={:0.2f}s).'.format(toc - tic))
+
+
+def coco_summarize(self):
+    """
+    Compute and display summary metrics for evaluation results.
+    Note this functin can *only* be applied on the default parameter setting
+    """
+
+    def _summarize(ap=1, iouThr=None, areaRng='all', maxDets=100000, write_handle=None):
+        p = self.params
+        iStr = ' {:<18} {} @[ IoU={:<9} | Score={:>4} | area={:>6s} | maxDets={:>3d} ] = {:0.3f}'
+        if ap == 1:
+            titleStr = 'Average Precision'
+        elif ap == 0:
+            titleStr = 'Average Recall'
+        elif ap == 2:
+            titleStr = 'Precision'
+        else:
+            raise NotImplementedError('ap should be 0,1,2')
+        if ap == 1:
+            typeStr = '(AP)'
+        elif ap == 0:
+            typeStr = '(AR)'
+        elif ap == 2:
+            typeStr = '(PR)'
+        else:
+            raise NotImplementedError('ap should be 0,1,2')
+        iouStr = '{:0.2f}:{:0.2f}'.format(p.iouThrs[0], p.iouThrs[-1]) \
+            if iouThr is None else '{:0.2f}'.format(iouThr)
+
+        aind = [i for i, aRng in enumerate(p.areaRngLbl) if aRng == areaRng]
+        mind = [i for i, mDet in enumerate(p.maxDets) if mDet == maxDets]
+        if ap == 1:
+            # dimension of precision: [TxRxKxAxM]
+            s = self.eval['precision']
+            # IoU
+            if iouThr is not None:
+                t = np.where(iouThr == p.iouThrs)[0]
+                s = s[t]
+            s = s[:, :, :, aind, mind]
+        elif ap == 0:
+            # dimension of recall: [TxKxAxM]
+            s = self.eval['recall']
+            if iouThr is not None:
+                t = np.where(iouThr == p.iouThrs)[0]
+                s = s[t]
+            s = s[:, :, aind, mind]
+        elif ap == 2:
+            s = self.eval['Pr']
+            if iouThr is not None:
+                t = np.where(iouThr == p.iouThrs)[0]
+                ##################################################
+                idx = aind[0] * len(p.iouThrs) + t[0]
+                ##################################################
+                s = s[idx]
+            else:
+                pass
+
+        if isinstance(s, list):  # for ap==2 ,to get average precision
+            mean_s = np.mean(s)
+        else:
+            if len(s[s > -1]) == 0:
+                mean_s = -1
+            else:
+                mean_s = np.mean(s[s > -1])
+        print(iStr.format(titleStr, typeStr, iouStr, p.scoceThrs, areaRng, maxDets, mean_s))
+        if write_handle is not None:
+            write_handle.write(iStr.format(titleStr, typeStr, iouStr, p.scoceThrs, areaRng, maxDets, mean_s) + '\n')
+        return mean_s
+
+    def _summarizeDets():
+        stats = np.zeros((3,))
+        stats[0] = _summarize(1, iouThr=.5, maxDets=self.params.maxDets[-1])  # AP
+        stats[1] = _summarize(0, iouThr=.5, maxDets=self.params.maxDets[-1])  # AR
+        stats[2] = _summarize(2, iouThr=.5, maxDets=self.params.maxDets[-1])  # PR
+
+        return stats
+
+    def _summarizeDets2():
+        stats = np.zeros((9,))
+        stats[0] = _summarize(1, iouThr=.5, maxDets=self.params.maxDets[-1])
+        stats[1] = _summarize(0, iouThr=.5, maxDets=self.params.maxDets[-1])
+        stats[2] = _summarize(2, iouThr=.5, maxDets=self.params.maxDets[-1])
+        stats[3] = _summarize(1, iouThr=.75, maxDets=self.params.maxDets[-1])
+        stats[4] = _summarize(0, iouThr=.75, maxDets=self.params.maxDets[-1])
+        stats[5] = _summarize(2, iouThr=.75, maxDets=self.params.maxDets[-1])
+        stats[6] = _summarize(1, maxDets=self.params.maxDets[-1])
+        stats[7] = _summarize(0, maxDets=self.params.maxDets[-1])
+        stats[8] = _summarize(2, maxDets=self.params.maxDets[-1])
+
+        return stats
+
+    def _summarizeDets3():
+        stats = np.zeros((12,))
+        stats[0] = _summarize(1, iouThr=.5, maxDets=self.params.maxDets[-1])  # AP
+        stats[1] = _summarize(0, iouThr=.5, maxDets=self.params.maxDets[-1])  # AR
+        stats[2] = _summarize(2, iouThr=.5, maxDets=self.params.maxDets[-1])  # PR
+        stats[3] = _summarize(1, iouThr=.5, areaRng='small', maxDets=self.params.maxDets[-1])
+        stats[4] = _summarize(0, iouThr=.5, areaRng='small', maxDets=self.params.maxDets[-1])
+        stats[5] = _summarize(2, iouThr=.5, areaRng='small', maxDets=self.params.maxDets[-1])
+        stats[6] = _summarize(1, iouThr=.5, areaRng='medium', maxDets=self.params.maxDets[-1])
+        stats[7] = _summarize(0, iouThr=.5, areaRng='medium', maxDets=self.params.maxDets[-1])
+        stats[8] = _summarize(2, iouThr=.5, areaRng='medium', maxDets=self.params.maxDets[-1])
+        stats[9] = _summarize(1, iouThr=.5, areaRng='large', maxDets=self.params.maxDets[-1])
+        stats[10] = _summarize(0, iouThr=.5, areaRng='large', maxDets=self.params.maxDets[-1])
+        stats[11] = _summarize(2, iouThr=.5, areaRng='large', maxDets=self.params.maxDets[-1])
+
+        return stats
+
+    def _summarizeDets4():
+        stats = np.zeros((36,))
+        stats[0] = _summarize(1, iouThr=.5, maxDets=self.params.maxDets[-1])
+        stats[1] = _summarize(0, iouThr=.5, maxDets=self.params.maxDets[-1])
+        stats[2] = _summarize(2, iouThr=.5, maxDets=self.params.maxDets[-1])
+        stats[3] = _summarize(1, iouThr=.5, areaRng='small', maxDets=self.params.maxDets[-1])
+        stats[4] = _summarize(0, iouThr=.5, areaRng='small', maxDets=self.params.maxDets[-1])
+        stats[5] = _summarize(2, iouThr=.5, areaRng='small', maxDets=self.params.maxDets[-1])
+        stats[6] = _summarize(1, iouThr=.5, areaRng='medium', maxDets=self.params.maxDets[-1])
+        stats[7] = _summarize(0, iouThr=.5, areaRng='medium', maxDets=self.params.maxDets[-1])
+        stats[8] = _summarize(2, iouThr=.5, areaRng='medium', maxDets=self.params.maxDets[-1])
+        stats[9] = _summarize(1, iouThr=.5, areaRng='large', maxDets=self.params.maxDets[-1])
+        stats[10] = _summarize(0, iouThr=.5, areaRng='large', maxDets=self.params.maxDets[-1])
+        stats[11] = _summarize(2, iouThr=.5, areaRng='large', maxDets=self.params.maxDets[-1])
+        stats[12] = _summarize(1, iouThr=.75, maxDets=self.params.maxDets[-1])
+        stats[13] = _summarize(0, iouThr=.75, maxDets=self.params.maxDets[-1])
+        stats[14] = _summarize(2, iouThr=.75, maxDets=self.params.maxDets[-1])
+        stats[15] = _summarize(1, iouThr=.75, areaRng='small', maxDets=self.params.maxDets[-1])
+        stats[16] = _summarize(0, iouThr=.75, areaRng='small', maxDets=self.params.maxDets[-1])
+        stats[17] = _summarize(2, iouThr=.75, areaRng='small', maxDets=self.params.maxDets[-1])
+        stats[18] = _summarize(1, iouThr=.75, areaRng='medium', maxDets=self.params.maxDets[-1])
+        stats[19] = _summarize(0, iouThr=.75, areaRng='medium', maxDets=self.params.maxDets[-1])
+        stats[20] = _summarize(2, iouThr=.75, areaRng='medium', maxDets=self.params.maxDets[-1])
+        stats[21] = _summarize(1, iouThr=.75, areaRng='large', maxDets=self.params.maxDets[-1])
+        stats[22] = _summarize(0, iouThr=.75, areaRng='large', maxDets=self.params.maxDets[-1])
+        stats[23] = _summarize(2, iouThr=.75, areaRng='large', maxDets=self.params.maxDets[-1])
+        stats[24] = _summarize(1, maxDets=self.params.maxDets[-1])
+        stats[25] = _summarize(0, maxDets=self.params.maxDets[-1])
+        stats[26] = _summarize(2, maxDets=self.params.maxDets[-1])
+        stats[27] = _summarize(1, areaRng='small', maxDets=self.params.maxDets[-1])
+        stats[28] = _summarize(0, areaRng='small', maxDets=self.params.maxDets[-1])
+        stats[29] = _summarize(2, areaRng='small', maxDets=self.params.maxDets[-1])
+        stats[30] = _summarize(1, areaRng='medium', maxDets=self.params.maxDets[-1])
+        stats[31] = _summarize(0, areaRng='medium', maxDets=self.params.maxDets[-1])
+        stats[32] = _summarize(2, areaRng='medium', maxDets=self.params.maxDets[-1])
+        stats[33] = _summarize(1, areaRng='large', maxDets=self.params.maxDets[-1])
+        stats[34] = _summarize(0, areaRng='large', maxDets=self.params.maxDets[-1])
+        stats[35] = _summarize(2, areaRng='large', maxDets=self.params.maxDets[-1])
+
+        return stats
+
+    if len(self.params.iouThrs) == 1 and len(self.params.areaRng) == 1:
+        summarize = _summarizeDets
+    elif len(self.params.iouThrs) == 10 and len(self.params.areaRng) == 1:
+        summarize = _summarizeDets2
+    elif len(self.params.iouThrs) == 1 and len(self.params.areaRng) == 4:
+        summarize = _summarizeDets3
+    elif len(self.params.iouThrs) == 10 and len(self.params.areaRng) == 4:
+        summarize = _summarizeDets4
+    else:
+        raise ValueError('wrong param, please check set_param function')
+    self.stats = summarize()
+
+
+def set_param(self):
+    p = self.params
+
+    ############################ 调用cocoeval时所需的参数 ########################################
+    area_mode = 'single'
+    p.maxDets = [100000]
+    p.iouThrs = np.array([0.5])
+    p.recThrs = np.linspace(.0, 1.00, int(np.round((1.00 - .0) / .01)) + 1, endpoint=True)
+    p.scoceThrs = 0.3
+    if area_mode == 'single':
+        p.areaRng = [[0 ** 2, 1e5 ** 2]]
+    elif area_mode == 'multiple':
+        p.areaRng = [[0 ** 2, 1e5 ** 2], [0 ** 2, 32 ** 2], [32 ** 2, 96 ** 2], [96 ** 2, 1e5 ** 2]]
+    else:
+        raise ValueError('wrong area_mode')
+    ########################################################################################
+
+    self.params = p

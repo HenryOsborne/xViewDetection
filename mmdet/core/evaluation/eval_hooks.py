@@ -53,6 +53,7 @@ class EvalHook(Hook):
                  by_epoch=True,
                  save_best=None,
                  rule=None,
+                 mode=None,
                  **eval_kwargs):
         if not isinstance(dataloader, DataLoader):
             raise TypeError('dataloader must be a pytorch DataLoader, but got'
@@ -68,6 +69,7 @@ class EvalHook(Hook):
         self.interval = interval
         self.by_epoch = by_epoch
         self.start = start
+        self.mode = mode
         assert isinstance(save_best, str) or save_best is None
         self.save_best = save_best
         self.eval_kwargs = eval_kwargs
@@ -174,7 +176,7 @@ class EvalHook(Hook):
 
     def evaluate(self, runner, results):
         eval_res = self.dataloader.dataset.evaluate(
-            results, logger=runner.logger, **self.eval_kwargs)
+            results, logger=runner.logger, mode=self.mode, **self.eval_kwargs)
         for name, val in eval_res.items():
             runner.log_buffer.output[name] = val
         runner.log_buffer.ready = True

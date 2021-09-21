@@ -390,7 +390,7 @@ class ResNet(nn.Module):
         self.stem_channels = stem_channels
         self.base_channels = base_channels
         self.num_stages = num_stages
-        assert num_stages >= 1 and num_stages <= 4
+        assert 1 <= num_stages <= 4
         self.strides = strides
         self.dilations = dilations
         assert len(strides) == len(dilations) == num_stages
@@ -425,7 +425,7 @@ class ResNet(nn.Module):
                 stage_plugins = self.make_stage_plugins(plugins, i)
             else:
                 stage_plugins = None
-            planes = base_channels * 2**i
+            planes = base_channels * 2 ** i
             res_layer = self.make_res_layer(
                 block=self.block,
                 inplanes=self.inplanes,
@@ -447,8 +447,8 @@ class ResNet(nn.Module):
 
         self._freeze_stages()
 
-        self.feat_dim = self.block.expansion * base_channels * 2**(
-            len(self.stage_blocks) - 1)
+        self.feat_dim = self.block.expansion * base_channels * 2 ** (
+                len(self.stage_blocks) - 1)
 
     def make_stage_plugins(self, plugins, stage_idx):
         """Make plugins for ResNet ``stage_idx`` th stage.

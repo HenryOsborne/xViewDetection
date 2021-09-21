@@ -14,7 +14,7 @@ except ImportError:
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector')
     parser.add_argument('--config', help='train config file path',
-                        default='cfgs_swin/faster_global_swin_neck.py')
+                        default='work_dirs/faster_global_FaPN/faster_global_FaPN.py')
     parser.add_argument(
         '--shape',
         type=int,

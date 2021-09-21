@@ -9,9 +9,12 @@ from .xml_style import XMLDataset
 
 @DATASETS.register_module()
 class DotaVOCDataset(XMLDataset):
-    CLASSES = ('plane', 'baseball-diamond', 'bridge', 'ground-track-field', 'small-vehicle', 'large-vehicle', 'ship',
-               'tennis-court', 'basketball-court', 'storage-tank', 'soccer-ball-field', 'roundabout', 'harbor',
-               'swimming-pool', 'helicopter', 'container-crane')
+    CLASSES = ('plane', 'baseball-diamond', 'bridge', 'ground-track-field',
+               'small-vehicle', 'large-vehicle', 'ship', 'tennis-court',
+               'basketball-court', 'storage-tank', 'soccer-ball-field',
+               'roundabout', 'harbor', 'swimming-pool', 'helicopter')
+
+    # v1.0 15 classes
 
     def __init__(self, **kwargs):
         super(DotaVOCDataset, self).__init__(**kwargs)

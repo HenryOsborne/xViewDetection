@@ -14,6 +14,8 @@ import copy
 import numpy as np
 import datetime
 import shutil
+import itertools
+from terminaltables import AsciiTable
 
 
 def computeIoU(self, imgId, catId):
@@ -50,6 +52,8 @@ def evaluateImg(self, imgId, catId, aRng, score, prog_bar):
     images = gts.imgs
     img_width = images[imgId]['width']
     img_height = images[imgId]['height']
+
+    prog_bar.update()
 
     if p.useCats:
         gt = self._gts[imgId, catId]
@@ -137,7 +141,6 @@ def evaluateImg(self, imgId, catId, aRng, score, prog_bar):
     a = np.array([d['area'] < aRng[0] or d['area'] > aRng[1] for d in dt]).reshape((1, len(dt)))
     dtIg = np.logical_or(dtIg, np.logical_and(dtm == 0, np.repeat(a, T, 0)))
     # store results for given image and category
-    prog_bar.update()
     return {
         'image_id': imgId,
         'category_id': catId,
@@ -175,7 +178,7 @@ def coco_evaluate(self):
                  for catId in catIds}
 
     ######################################################################################
-    prog_bar = mmcv.ProgressBar(len(self.params.imgIds) * len(self.params.areaRng))
+    prog_bar = mmcv.ProgressBar(len(self.params.imgIds) * len(self.params.areaRng) * len(self.params.catIds))
     ######################################################################################
     self.evalImgs = [evaluateImg(self, imgId, catId, areaRng, p.scoceThrs, prog_bar)
                      for catId in catIds
@@ -525,6 +528,7 @@ def coco_summarize(self, args):
 
 def evaluate(args, anns):
     cocoGt = COCO(args.val_path)
+    cat_ids = cocoGt.get_cat_ids()
     cocoDt = cocoGt.loadRes(anns)
     cocoEval = COCOeval(cocoGt, cocoDt, iouType=args.eval)
 
@@ -532,6 +536,40 @@ def evaluate(args, anns):
     coco_evaluate(cocoEval)
     coco_accumulate(cocoEval)
     coco_summarize(cocoEval, args)
+
+    if args.classwise:  # Compute per-category AP
+        # Compute per-category AP
+        # from https://github.com/facebookresearch/detectron2/
+        precisions = cocoEval.eval['precision']
+        # precision: (iou, recall, cls, area range, max dets)
+        assert len(cat_ids) == precisions.shape[2]
+
+        results_per_category = []
+        for idx, catId in enumerate(cat_ids):
+            # area range index 0: all area ranges
+            # max dets index -1: typically 100 per image
+            nm = cocoGt.loadCats(catId)[0]
+            precision = precisions[:, :, idx, 0, -1]
+            precision = precision[precision > -1]
+            if precision.size:
+                ap = np.mean(precision)
+            else:
+                ap = float('nan')
+            results_per_category.append(
+                (f'{nm["name"]}', f'{float(ap):0.3f}'))
+
+        num_columns = min(6, len(results_per_category) * 2)
+        results_flatten = list(
+            itertools.chain(*results_per_category))
+        headers = ['category', 'AP'] * (num_columns // 2)
+        results_2d = itertools.zip_longest(*[
+            results_flatten[i::num_columns]
+            for i in range(num_columns)
+        ])
+        table_data = [headers]
+        table_data += [result for result in results_2d]
+        table = AsciiTable(table_data)
+        print(table.table)
 
 
 def det2json(dataset, results, mode):
@@ -618,27 +656,31 @@ def parse_args():
     parser = argparse.ArgumentParser(description='MMDet test detector')
 
     #####################################################################################################
-    parser.add_argument('--work_dir', default='work_dirs/faster_global_resnet_neck_pa')
+    parser.add_argument('--work_dir', default='work_dirs/dota/faster_dota')
     # please point out work_dir in this place
     parser.add_argument('--score', default=0.3, type=float)
     # drop result if result's score small than args.score
     parser.add_argument('--show', default=False, type=bool)
     # whether to draw pred box to img
+    parser.add_argument('--dump_resfile', default=False, type=bool)
+    # whether to save ResFile.json
+    parser.add_argument('--weight_file', type=str, default='epoch_50.pth')
+    # choose weight file to eval
+    parser.add_argument('--dataset', type=str, choices=['dota', 'xview'], default='xview')
+    parser.add_argument('--classwise', type=bool, default=True)
+
     parser.add_argument('--iou_mode', choices=['single', 'multiple'], type=str, default='single')
     # if iou_mode is single, only eval iouThr=0.5
     # else if iou_mode is multiple, eval iouThr from 0.5 to 0.95
-    parser.add_argument('--area_mode', choices=['single', 'multiple'], type=str, default='multiple')
+    parser.add_argument('--area_mode', choices=['single', 'multiple'], type=str, default='single')
     # if area_mode is single, only eval areaRng='all'
     # else if area_mode is multiple, eval areaRng='all', 'small', 'medium', 'large'
     # it takes very long time, more than 20 minutes, use carefully
-    parser.add_argument('--dump_resfile', default=False, type=bool)
-    # whether to save ResFile.json
     #####################################################################################################
 
     parser.add_argument('--resize_width', default=3000, type=float, help='the width of image after resize')
     parser.add_argument('--resize_height', default=3000, type=float, help='the height of image after resize')
 
-    parser.add_argument('--val_path', type=str, default='data/xview/annotations/instances_val2017.json')
     parser.add_argument('--eval', type=str, default='bbox', nargs='+',
                         choices=['proposal', 'proposal_fast', 'bbox', 'segm', 'keypoints'],
                         help='eval types')
@@ -646,11 +688,19 @@ def parse_args():
                         help='job launcher')
     parser.add_argument('--local_rank', type=int, default=0)
     args = parser.parse_args()
-    #####################################################################################################
-    args.checkpoint = os.path.join(args.work_dir, 'epoch_50.pth')
-    #####################################################################################################
+
+    if 'dota' in args.work_dir:
+        args.dataset = 'dota'
+
+    if args.dataset == 'xview':
+        args.val_path = 'data/xview/annotations/instances_val2017.json'
+    elif args.dataset == 'dota':
+        args.val_path = 'data/dota/val/DOTA_val.json'
+    else:
+        raise NotImplementedError('Wrong dataset name, please check arg.dataset')
+
     bare_name = os.path.basename(args.work_dir)
-    if 'global' in bare_name or 'mode1' in bare_name:
+    if 'global' in bare_name or 'mode1' in bare_name or 'dota' in bare_name:
         args.mode = 'global'
     elif 'local' in bare_name or 'mode2' in bare_name:
         args.mode = 'local'
@@ -665,6 +715,7 @@ def parse_args():
     config_file = config_file[0]
     args.config = os.path.join(args.work_dir, config_file)
     args.ResFile = os.path.join(args.work_dir, 'ResFile.json')
+    args.checkpoint = os.path.join(args.work_dir, args.weight_file)
     if args.show is True:
         args.outdir = os.path.join(args.work_dir, 'out')
         os.makedirs(args.outdir, exist_ok=True)

@@ -5,6 +5,8 @@ from ..iou_calculators import build_iou_calculator
 from .assign_result import AssignResult
 from .base_assigner import BaseAssigner
 
+from mmdet.utils import get_root_logger
+
 
 @BBOX_ASSIGNERS.register_module()
 class MaxIoUAssigner(BaseAssigner):
@@ -117,6 +119,10 @@ class MaxIoUAssigner(BaseAssigner):
                 gt_labels = gt_labels.cpu()
 
         overlaps = self.iou_calculator(gt_bboxes, bboxes)
+        # num_gt_bboxes = len(gt_bboxes)
+        # logger = get_root_logger()
+        # if num_gt_bboxes > 200:
+        #     logger.info(f'got {num_gt_bboxes} gt_bboxes')
 
         if (self.ignore_iof_thr > 0 and gt_bboxes_ignore is not None
                 and gt_bboxes_ignore.numel() > 0 and bboxes.numel() > 0):

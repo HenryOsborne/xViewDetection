@@ -11,10 +11,9 @@ model = dict(
         frozen_stages=1,
         style='pytorch'),
     neck=dict(
-        type='FPN',
+        type='FAPN',
         in_channels=[256, 512, 1024, 2048],
-        out_channels=256,
-        num_outs=5),
+        out_channels=256),
     rpn_head=dict(
         type='RPNHead',
         in_channels=256,
@@ -159,7 +158,7 @@ data = dict(
         pipeline=test_pipeline))
 # optimizer
 
-evaluation = dict(interval=1, metric='bbox', mode='global')
+evaluation = dict(interval=51, metric='bbox')
 optimizer = dict(type='SGD', lr=0.0025, momentum=0.9, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
 # learning policy
@@ -182,7 +181,7 @@ log_config = dict(
 runner = dict(type='EpochBasedRunner', max_epochs=50)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/faster_global'
+work_dir = './work_dirs/faster_global_FaPN'
 load_from = None
 resume_from = None
 workflow = [('train', 1)]

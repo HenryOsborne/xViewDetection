@@ -1,3 +1,5 @@
+import warnings
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -7,8 +9,8 @@ from mmcv.runner import auto_fp16
 from mmdet.models.necks.TransNeck import TransEncoder, CBAM
 from mmdet.models.builder import NECKS
 
-
-@NECKS.register_module()
+#
+# @NECKS.register_module()
 class MyNeck(nn.Module):
     def __init__(self,
                  in_channels,
@@ -153,7 +155,7 @@ if __name__ == '__main__':
          torch.randn(1, 192, 100, 100),
          torch.randn(1, 384, 50, 50),
          torch.randn(1, 768, 25, 25)]
-    neck = MyNeck(in_channels=[96, 192, 384, 768], out_channels=256,use_path_augment=True)
+    neck = MyNeck(in_channels=[96, 192, 384, 768], out_channels=256)
     y = neck(x)
     print(y)
     # z = [torch.randn(1, 256, 200, 200),
