@@ -656,7 +656,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='MMDet test detector')
 
     #####################################################################################################
-    parser.add_argument('--work_dir', default='work_dirs/dota/faster_dota')
+    parser.add_argument('--work_dir', default='work_dirs/xview/faster_xview_augfpn')
     # please point out work_dir in this place
     parser.add_argument('--score', default=0.3, type=float)
     # drop result if result's score small than args.score
@@ -672,7 +672,7 @@ def parse_args():
     parser.add_argument('--iou_mode', choices=['single', 'multiple'], type=str, default='single')
     # if iou_mode is single, only eval iouThr=0.5
     # else if iou_mode is multiple, eval iouThr from 0.5 to 0.95
-    parser.add_argument('--area_mode', choices=['single', 'multiple'], type=str, default='single')
+    parser.add_argument('--area_mode', choices=['single', 'multiple'], type=str, default='multiple')
     # if area_mode is single, only eval areaRng='all'
     # else if area_mode is multiple, eval areaRng='all', 'small', 'medium', 'large'
     # it takes very long time, more than 20 minutes, use carefully
@@ -700,7 +700,7 @@ def parse_args():
         raise NotImplementedError('Wrong dataset name, please check arg.dataset')
 
     bare_name = os.path.basename(args.work_dir)
-    if 'global' in bare_name or 'mode1' in bare_name or 'dota' in bare_name:
+    if 'global' in bare_name or 'mode1' in bare_name or 'dota' in bare_name or 'xview' in bare_name:
         args.mode = 'global'
     elif 'local' in bare_name or 'mode2' in bare_name:
         args.mode = 'local'

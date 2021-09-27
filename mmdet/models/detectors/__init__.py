@@ -41,6 +41,8 @@ from .local_htc import LocalHybridTaskCascade
 from .local_trident import LocalTridentFasterRCNN
 from .DAL.two_stage_dal import TwoStageDetectorDAL
 from .DAL.faster_rcnn_dal import FasterRCNNDAL
+from .two_stage_aux import AuxTwoStageDetector
+from .faster_rcnn_aux import AuxFasterRCNN
 
 __all__ = [
     'ATSS', 'BaseDetector', 'SingleStageDetector',
@@ -52,5 +54,5 @@ __all__ = [
     'SCNet', 'LocalLibra', 'LocalFasterRCNN',
     'LocalSparseRCNN', 'LocalDynamic', 'GlobalGLGA', 'GLTwoStage', 'TwoStageDetectorLocal',
     'LocalCascadeRCNN', 'LocalGLGA', 'LocalHybridTaskCascade', 'LocalTridentFasterRCNN',
-    'TwoStageDetectorDAL', 'FasterRCNNDAL'
+    'TwoStageDetectorDAL', 'FasterRCNNDAL', 'AuxTwoStageDetector', 'AuxFasterRCNN'
 ]

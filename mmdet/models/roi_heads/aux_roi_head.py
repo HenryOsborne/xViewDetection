@@ -1,13 +1,13 @@
 import torch
 
-from mmdet.core import bbox2result, bbox2roi, build_assigner, build_sampler
+from mmdet.core import bbox2result, bbox2roi, build_assigner, build_sampler, multi_apply
 from ..builder import HEADS, build_head, build_roi_extractor
-from .base_roi_head import BaseRoIHead
+from .aux_base_roi_head import AuxBaseRoIHead
 from .test_mixins import BBoxTestMixin, MaskTestMixin
 
 
 @HEADS.register_module()
-class StandardRoIHead(BaseRoIHead, BBoxTestMixin, MaskTestMixin):
+class AuxRoIHead(AuxBaseRoIHead, BBoxTestMixin, MaskTestMixin):
     """Simplest base roi head including one bbox head and one mask head."""
 
     def init_assigner_sampler(self):
@@ -23,6 +23,11 @@ class StandardRoIHead(BaseRoIHead, BBoxTestMixin, MaskTestMixin):
         """Initialize ``bbox_head``"""
         self.bbox_roi_extractor = build_roi_extractor(bbox_roi_extractor)
         self.bbox_head = build_head(bbox_head)
+
+    def init_auxiliary_bbox_head(self, auxiliary_bbox_roi_extractor, auxiliary_bbox_head):
+        """Initialize ``auxiliary_bbox_head``"""
+        self.auxiliary_bbox_roi_extractor = build_roi_extractor(auxiliary_bbox_roi_extractor)
+        self.auxiliary_bbox_head = build_head(auxiliary_bbox_head)
 
     def init_mask_head(self, mask_roi_extractor, mask_head):
         """Initialize ``mask_head``"""
@@ -46,6 +51,9 @@ class StandardRoIHead(BaseRoIHead, BBoxTestMixin, MaskTestMixin):
         if self.with_bbox:
             self.bbox_roi_extractor.init_weights()
             self.bbox_head.init_weights()
+        if self.with_auxiliary_bbox:
+            self.auxiliary_bbox_roi_extractor.init_weights()
+            self.auxiliary_bbox_head.init_weights()
         if self.with_mask:
             self.mask_head.init_weights()
             if not self.share_roi_extractor:
@@ -69,6 +77,7 @@ class StandardRoIHead(BaseRoIHead, BBoxTestMixin, MaskTestMixin):
 
     def forward_train(self,
                       x,
+                      y,
                       img_metas,
                       proposal_list,
                       gt_bboxes,
@@ -77,6 +86,7 @@ class StandardRoIHead(BaseRoIHead, BBoxTestMixin, MaskTestMixin):
                       gt_masks=None):
         """
         Args:
+            y:
             x (list[Tensor]): list of multi-level img features.
             img_metas (list[dict]): list of image info dict where each dict
                 has: 'img_shape', 'scale_factor', 'flip', and may also contain
@@ -116,17 +126,19 @@ class StandardRoIHead(BaseRoIHead, BBoxTestMixin, MaskTestMixin):
         losses = dict()
         # bbox head forward and loss
         if self.with_bbox:
-            bbox_results = self._bbox_forward_train(x, sampling_results,
+            bbox_results = self._bbox_forward_train(x, y, sampling_results,
                                                     gt_bboxes, gt_labels,
                                                     img_metas)
             losses.update(bbox_results['loss_bbox'])
+            losses.update(bbox_results['loss_bbox_auxiliary'])
 
         # mask head forward and loss
         if self.with_mask:
-            mask_results = self._mask_forward_train(x, sampling_results,
+            mask_results = self._mask_forward_train(x, y, sampling_results,
                                                     bbox_results['bbox_feats'],
                                                     gt_masks, img_metas)
             losses.update(mask_results['loss_mask'])
+            losses.update(bbox_results['loss_mask_auxiliary'])
 
         return losses
 
@@ -143,7 +155,7 @@ class StandardRoIHead(BaseRoIHead, BBoxTestMixin, MaskTestMixin):
             cls_score=cls_score, bbox_pred=bbox_pred, bbox_feats=bbox_feats)
         return bbox_results
 
-    def _bbox_forward_train(self, x, sampling_results, gt_bboxes, gt_labels,
+    def _bbox_forward_train(self, x, y, sampling_results, gt_bboxes, gt_labels,
                             img_metas):
         """Run forward function and calculate loss for box head in training."""
         rois = bbox2roi([res.bboxes for res in sampling_results])
@@ -156,9 +168,23 @@ class StandardRoIHead(BaseRoIHead, BBoxTestMixin, MaskTestMixin):
                                         *bbox_targets)
 
         bbox_results.update(loss_bbox=loss_bbox)
+
+        if self.with_auxiliary_bbox:
+            # reg_classes = 1 if self.bbox_head.reg_class_agnostic else self.bbox_head.num_classes
+            # if reg_classes > 1:
+            #     bbox_targets, bbox_weights = expand_target(bbox_targets, bbox_weights,
+            #                                                labels, reg_classes)
+            bbox_feats_raw = self.auxiliary_bbox_roi_extractor(y[:self.bbox_roi_extractor.num_inputs], rois)
+            cls_score_auxiliary, bbox_pred_auxiliary = self.auxiliary_bbox_head(bbox_feats_raw)
+
+            loss_bbox_auxiliary = self.auxiliary_bbox_head.loss(cls_score_auxiliary, bbox_pred_auxiliary,
+                                                                *bbox_targets, alpha=self.train_cfg.alpha)
+
+            bbox_results.update(loss_bbox_auxiliary=loss_bbox_auxiliary)
+
         return bbox_results
 
-    def _mask_forward_train(self, x, sampling_results, bbox_feats, gt_masks,
+    def _mask_forward_train(self, x, y, sampling_results, bbox_feats, gt_masks,
                             img_metas):
         """Run forward function and calculate loss for mask head in
         training."""
@@ -191,6 +217,15 @@ class StandardRoIHead(BaseRoIHead, BBoxTestMixin, MaskTestMixin):
                                         mask_targets, pos_labels)
 
         mask_results.update(loss_mask=loss_mask, mask_targets=mask_targets)
+
+        if self.use_consistent_supervision and self.train_cfg.rcnn.mask_auxiliary:
+            mask_feats_raw = self.auxiliary_mask_roi_extractor(y[:self.mask_roi_extractor.num_inputs], pos_rois)
+            mask_pred_auxiliary = self.auxiliary_mask_head(mask_feats_raw)
+
+            loss_mask_auxiliary = self.auxiliary_mask_head.loss_aux(mask_pred_auxiliary, mask_targets,
+                                                                    pos_labels, alpha=self.train_cfg.rcnn.alpha)
+            mask_results.update(loss_mask_auxiliary=loss_mask_auxiliary)
+
         return mask_results
 
     def _mask_forward(self, x, rois=None, pos_inds=None, bbox_feats=None):
