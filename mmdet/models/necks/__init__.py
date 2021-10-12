@@ -18,10 +18,12 @@ from .TransNeck.neck import MyNeck
 from .TransNeck.FaPN import FAPN
 from .TransNeck.asff import ASFFNeck
 from .hign_fpn import HighFPN
+from .augneck import AugNeck
+from .ssfpn import SSFPN
 
 __all__ = [
     'FPN', 'BFP', 'ChannelMapper', 'HRFPN', 'NASFPN', 'FPN_CARAFE', 'PAFPN',
     'NASFCOS_FPN', 'RFP', 'YOLOV3Neck', 'FPG', 'GLNET_fpn', 'GlNetNeck',
     'GlNetNeckK1', 'GlNetNeck_3_1', 'GlPaNetNeck', 'MyNeck', 'FAPN', 'ASFFNeck',
-    'HighFPN'
+    'HighFPN', 'AugNeck', 'SSFPN'
 ]

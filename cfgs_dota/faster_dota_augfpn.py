@@ -1,7 +1,7 @@
 img_scale = (800, 800)
 # model settings
 model = dict(
-    type='AuxFasterRCNN',
+    type='FasterRCNN',
     pretrained='torchvision://resnet50',
     backbone=dict(
         type='ResNet',

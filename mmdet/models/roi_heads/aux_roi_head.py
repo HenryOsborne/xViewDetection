@@ -129,6 +129,7 @@ class AuxRoIHead(AuxBaseRoIHead, BBoxTestMixin, MaskTestMixin):
             bbox_results = self._bbox_forward_train(x, y, sampling_results,
                                                     gt_bboxes, gt_labels,
                                                     img_metas)
+            # TODO:add a hyper-parameter to balance the auxiliary loss and original loss
             losses.update(bbox_results['loss_bbox'])
             losses.update(bbox_results['loss_bbox_auxiliary'])
 
@@ -170,10 +171,6 @@ class AuxRoIHead(AuxBaseRoIHead, BBoxTestMixin, MaskTestMixin):
         bbox_results.update(loss_bbox=loss_bbox)
 
         if self.with_auxiliary_bbox:
-            # reg_classes = 1 if self.bbox_head.reg_class_agnostic else self.bbox_head.num_classes
-            # if reg_classes > 1:
-            #     bbox_targets, bbox_weights = expand_target(bbox_targets, bbox_weights,
-            #                                                labels, reg_classes)
             bbox_feats_raw = self.auxiliary_bbox_roi_extractor(y[:self.bbox_roi_extractor.num_inputs], rois)
             cls_score_auxiliary, bbox_pred_auxiliary = self.auxiliary_bbox_head(bbox_feats_raw)
 

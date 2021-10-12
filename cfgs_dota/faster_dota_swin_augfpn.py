@@ -1,7 +1,7 @@
 img_scale = (800, 800)
 # model settings
 model = dict(
-    type='AuxFasterRCNN',
+    type='FasterRCNN',
     pretrained='points/swin_tiny_patch4_window7_224.pth',
     backbone=dict(
         type='SwinTransformer',

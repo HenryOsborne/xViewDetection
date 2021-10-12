@@ -1,7 +1,7 @@
 img_scale = (800, 800)
 # model settings
 model = dict(
-    type='FasterRCNN',
+    type='FasterSSPNet',
     pretrained='torchvision://resnet50',
     backbone=dict(
         type='ResNet',
@@ -11,7 +11,7 @@ model = dict(
         frozen_stages=1,
         style='pytorch'),
     neck=dict(
-        type='HighFPN',
+        type='SSFPN',
         in_channels=[256, 512, 1024, 2048],
         out_channels=256,
         num_outs=5),
@@ -19,41 +19,30 @@ model = dict(
         type='RPNHead',
         in_channels=256,
         feat_channels=256,
-        ##################################################################
-        # in global mode ,anchor scales shoule be 4
+        # ----------------------------------------
         anchor_generator=dict(
             type='AnchorGenerator',
             scales=[4],
             ratios=[0.5, 1.0, 2.0],
             strides=[4, 8, 16, 32, 64]),
-        ##################################################################
+        # anchor_generator=dict(
+        #     type='AnchorGenerator',
+        #     # scales=[1.5, 2.5, 3.7, 8],
+        #     ratios=[0.4, 0.8, 1.4],
+        #     strides=[4, 8, 16, 32, 64]),
+        # ----------------------------------------
         loss_cls=dict(
             type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
         loss_bbox=dict(type='SmoothL1Loss', beta=1.0 / 9.0, loss_weight=1.0)),
     roi_head=dict(
-        type='AuxRoIHead',
+        type='StandardRoIHead',
         bbox_roi_extractor=dict(
-            type='SoftRoIExtractor',
+            type='SingleRoIExtractor',
             roi_layer=dict(type='RoIAlign', output_size=7, sampling_ratio=2),
             out_channels=256,
             featmap_strides=[4, 8, 16, 32]),
         bbox_head=dict(
             type='Shared2FCBBoxHead',
-            in_channels=256,
-            fc_out_channels=1024,
-            roi_feat_size=7,
-            num_classes=1,
-            reg_class_agnostic=False,
-            loss_cls=dict(
-                type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0),
-            loss_bbox=dict(type='SmoothL1Loss', beta=1.0, loss_weight=1.0)),
-        auxiliary_bbox_roi_extractor=dict(
-            type='AuxAllLevelRoIExtractor',
-            roi_layer=dict(type='RoIAlign', output_size=7, sampling_ratio=2),
-            out_channels=256,
-            featmap_strides=[4, 8, 16, 32]),
-        auxiliary_bbox_head=dict(
-            type='AuxiliaryShared2FCBBoxHead',
             in_channels=256,
             fc_out_channels=1024,
             roi_feat_size=7,
@@ -73,14 +62,22 @@ model = dict(
                 # if GT is too large, could lead to the explosion of GPU memory
                 # can change the value of gpu_assign_thr
                 # if number of GT > gpu_assign_thr, then use cpu to claculator iou
-                gpu_assign_thr=800,
+                gpu_assign_thr=-1,
                 ignore_iof_thr=-1),
+            # ------------------------------------------
             sampler=dict(
                 type='RandomSampler',
                 num=256,
                 pos_fraction=0.5,
                 neg_pos_ub=-1,
                 add_gt_as_proposals=False),
+            # sampler=dict(
+            #     type='ICNegSampler',
+            #     num=256,
+            #     pos_fraction=0.5,
+            #     neg_pos_ub=-1,
+            #     add_gt_as_proposals=False),
+            # ------------------------------------------
             allowed_border=0,
             pos_weight=-1,
             debug=False),
@@ -194,11 +191,11 @@ log_config = dict(
     ])
 # yapf:enable
 # runtime settings
-evaluation = dict(interval=10, metric='bbox')
+evaluation = dict(interval=51, metric='bbox')
 runner = dict(type='EpochBasedRunner', max_epochs=50)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/xview/faster_xview_augfpn'
+work_dir = './work_dirs/xview/faster_xview_sspnet'
 load_from = None
 resume_from = None
 workflow = [('train', 1)]

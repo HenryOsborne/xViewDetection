@@ -7,6 +7,7 @@ import os
 # from mmdet.core import bbox2result, bbox2roi, build_assigner, build_sampler
 from ..builder import DETECTORS, build_backbone, build_head, build_neck
 from .base import BaseDetector
+from mmdet.models.plugins import DynamicHead
 
 
 @DETECTORS.register_module()
@@ -28,8 +29,34 @@ class TwoStageDetector(BaseDetector):
         super(TwoStageDetector, self).__init__()
         self.backbone = build_backbone(backbone)
 
+        # ------------------------------------------------------------------------------------
+        if 'use_dynamic_head' in train_cfg.rcnn:
+            self.use_dynamic_head = train_cfg.rcnn.use_dynamic_head
+            self.dynamic_head_cfg = train_cfg.rcnn.dynamic_head_cfg
+        else:
+            self.use_dynamic_head = False
+            self.dynamic_head_cfg = None
+
+        if 'use_consistent_supervision' in train_cfg.rcnn:
+            self.use_consistent_supervision = train_cfg.rcnn.use_consistent_supervision
+        else:
+            self.use_consistent_supervision = False
+
+        if 'show_feature' in test_cfg.rcnn:
+            assert test_cfg.rcnn.feature_dir is not None('Please specifiy feature save dir')
+            self.show_feature = test_cfg.rcnn.show_feature
+            self.feature_dir = test_cfg.rcnn.feature_dir
+        else:
+            self.show_feature = False
+            self.feature_dir = None
+        # ------------------------------------------------------------------------------------
+
         if neck is not None:
-            self.neck = build_neck(neck)
+            if self.use_consistent_supervision:
+                neck.update({'use_dual_head': True})
+                self.neck = build_neck(neck)
+            else:
+                self.neck = build_neck(neck)
 
         if rpn_head is not None:
             rpn_train_cfg = train_cfg.rpn if train_cfg is not None else None
@@ -44,6 +71,14 @@ class TwoStageDetector(BaseDetector):
             roi_head.update(train_cfg=rcnn_train_cfg)
             roi_head.update(test_cfg=test_cfg.rcnn)
             self.roi_head = build_head(roi_head)
+
+        if self.use_dynamic_head:
+            assert self.dynamic_head_cfg is not None
+            self.dynamic_head = DynamicHead(self.dynamic_head_cfg['num_block'],
+                                            self.dynamic_head_cfg['Level'],
+                                            self.dynamic_head_cfg['Spatial'],
+                                            self.dynamic_head_cfg['Channel']
+                                            )
 
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
@@ -82,10 +117,16 @@ class TwoStageDetector(BaseDetector):
 
     def extract_feat(self, img):
         """Directly extract features from the backbone+neck."""
+        # ------------------------------------------------------------------------------------
         x = self.backbone(img)
         if self.with_neck:
-            x = self.neck(x)
-        return x
+            if self.use_consistent_supervision:
+                x, y = self.neck(x)
+                return x, y
+            else:
+                x = self.neck(x)
+                return x
+        # ------------------------------------------------------------------------------------
 
     def forward_dummy(self, img):
         """Used for computing network flops.
@@ -142,7 +183,15 @@ class TwoStageDetector(BaseDetector):
         Returns:
             dict[str, Tensor]: a dictionary of loss components
         """
-        x = self.extract_feat(img)
+        # ------------------------------------------------------------------------------------
+        if self.use_consistent_supervision:
+            x, y = self.extract_feat(img)
+        else:
+            x = self.extract_feat(img)
+
+        if self.use_dynamic_head:
+            x = self.dynamic_head(list(x))
+        # ------------------------------------------------------------------------------------
 
         losses = dict()
 
@@ -161,10 +210,19 @@ class TwoStageDetector(BaseDetector):
         else:
             proposal_list = proposals
 
-        roi_losses = self.roi_head.forward_train(x, img_metas, proposal_list,
-                                                 gt_bboxes, gt_labels,
-                                                 gt_bboxes_ignore, gt_masks,
-                                                 **kwargs)
+        # ------------------------------------------------------------------------------------
+        if self.use_consistent_supervision:
+            roi_losses = self.roi_head.forward_train(x, y, img_metas, proposal_list,
+                                                     gt_bboxes, gt_labels,
+                                                     gt_bboxes_ignore, gt_masks,
+                                                     **kwargs)
+        else:
+            roi_losses = self.roi_head.forward_train(x, img_metas, proposal_list,
+                                                     gt_bboxes, gt_labels,
+                                                     gt_bboxes_ignore, gt_masks,
+                                                     **kwargs)
+        # ------------------------------------------------------------------------------------
+
         losses.update(roi_losses)
 
         return losses
@@ -191,11 +249,16 @@ class TwoStageDetector(BaseDetector):
         """Test without augmentation."""
         assert self.with_bbox, 'Bbox head must be implemented.'
 
-        x = self.extract_feat(img)
+        # ------------------------------------------------------------------------------------
+        if self.use_consistent_supervision:
+            x, y = self.extract_feat(img)
+        else:
+            x = self.extract_feat(img)
+        # ------------------------------------------------------------------------------------
 
-        show_feature = True
-
-        if show_feature:
+        # ------------------------------------------------------------------------------------
+        if self.show_feature:
+            # TODO:使用生成热力图的方法
             from PIL import Image
             feature = x[0][0][0].cpu()
             feature = 1.0 / (1 + np.exp(-1 * feature))
@@ -204,7 +267,8 @@ class TwoStageDetector(BaseDetector):
             img = img.resize((800, 800), Image.ANTIALIAS)
             img_name = img_metas[0]['ori_filename'].split('.')[0]
             os.makedirs('feature', exist_ok=True)
-            img.save('./feature/' + str(img_name) + '_p2.jpg')
+            img.save(self.feature_dir + str(img_name) + '_p2.jpg')
+        # ------------------------------------------------------------------------------------
 
         # get origin input shape to onnx dynamic input shape
         if torch.onnx.is_in_onnx_export():

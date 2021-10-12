@@ -13,8 +13,8 @@ except ImportError:
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector')
-    parser.add_argument('--config', help='train config file path',
-                        default='cfgs_dota/faster_dota_asff.py')
+    parser.add_argument('config', help='train config file path',
+                        default='')
     parser.add_argument(
         '--shape',
         type=int,

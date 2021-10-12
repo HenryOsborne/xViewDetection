@@ -11,10 +11,10 @@ model = dict(
         frozen_stages=1,
         style='pytorch'),
     neck=dict(
-        type='HighFPN',
+        type='AugNeck',
         in_channels=[256, 512, 1024, 2048],
         out_channels=256,
-        num_outs=5),
+        use_path_augment=True),
     rpn_head=dict(
         type='RPNHead',
         in_channels=256,
@@ -31,29 +31,14 @@ model = dict(
             type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
         loss_bbox=dict(type='SmoothL1Loss', beta=1.0 / 9.0, loss_weight=1.0)),
     roi_head=dict(
-        type='AuxRoIHead',
+        type='StandardRoIHead',
         bbox_roi_extractor=dict(
-            type='SoftRoIExtractor',
+            type='SingleRoIExtractor',
             roi_layer=dict(type='RoIAlign', output_size=7, sampling_ratio=2),
             out_channels=256,
             featmap_strides=[4, 8, 16, 32]),
         bbox_head=dict(
             type='Shared2FCBBoxHead',
-            in_channels=256,
-            fc_out_channels=1024,
-            roi_feat_size=7,
-            num_classes=1,
-            reg_class_agnostic=False,
-            loss_cls=dict(
-                type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0),
-            loss_bbox=dict(type='SmoothL1Loss', beta=1.0, loss_weight=1.0)),
-        auxiliary_bbox_roi_extractor=dict(
-            type='AuxAllLevelRoIExtractor',
-            roi_layer=dict(type='RoIAlign', output_size=7, sampling_ratio=2),
-            out_channels=256,
-            featmap_strides=[4, 8, 16, 32]),
-        auxiliary_bbox_head=dict(
-            type='AuxiliaryShared2FCBBoxHead',
             in_channels=256,
             fc_out_channels=1024,
             roi_feat_size=7,
@@ -104,9 +89,7 @@ model = dict(
                 neg_pos_ub=-1,
                 add_gt_as_proposals=True),
             pos_weight=-1,
-            debug=False,
-            use_consistent_supervision=True,
-            alpha=0.25)),
+            debug=False)),
     test_cfg=dict(
         rpn=dict(
             nms_pre=10000,
@@ -194,11 +177,11 @@ log_config = dict(
     ])
 # yapf:enable
 # runtime settings
-evaluation = dict(interval=10, metric='bbox')
+evaluation = dict(interval=51, metric='bbox')
 runner = dict(type='EpochBasedRunner', max_epochs=50)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
-work_dir = './work_dirs/xview/faster_xview_augfpn'
+work_dir = './work_dirs/xview/faster_xview_augneck_pa'
 load_from = None
 resume_from = None
 workflow = [('train', 1)]
