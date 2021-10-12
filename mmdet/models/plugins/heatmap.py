@@ -13,7 +13,9 @@ class Heatmap:
                      loss_weight=1.0)):
         self.nb_downsample = 2  # is related to the downsample times in backbone
         self.fpn_lvl = fpn_lvl
-        self.lamda = 0.01  # balanced parameter of reg loss
+        self.alpha = 0.01  # balanced parameter of reg loss
+        self.beta = 1
+        self.smooth = 1
         self.loss_att = build_loss(loss_att)
         self.min_size = 2  # 2 & 5 is related to anchor size (anchor-based method) or object size (anchor-free method)
         self.max_size = 5
@@ -27,28 +29,27 @@ class Heatmap:
             return 1
         elif lvl == 0 and area < min_area:  # scale <4  marked as 1
             return 1
-        elif lvl == 3 and area > min_area:  # scale out of range  marked as 1
+        elif lvl == 3 and area > max_area:  # scale out of range  marked as 1
             return 1
         else:
             return -1  # once the object can not be matched in i-th layer, it will be treated as background  marked as -1
 
-    @staticmethod
-    def seg_loss(pred, target, mask):
-
+    def seg_loss(self, pred, target, mask):
+        # dice loss
         pred = pred.contiguous().view(pred.size()[0], -1)
         target = target.contiguous().view(target.size()[0], -1)
         mask = mask.contiguous().view(mask.size()[0], -1)
 
-        target[target > 0] = 1
+        target[target > 0] = 1  # prioritize the foreground
 
         pred = pred * mask
         target = target * mask
 
-        a = torch.sum(pred * target, 1) + 1  # + 1  # 0.001
-        b = torch.sum(pred * pred, 1) + 1  # + 1
-        c = torch.sum(target * target, 1) + 1  # + 1
+        a = torch.sum(pred * target, 1) + self.smooth  # + 1  # 0.001
+        b = torch.sum(pred * pred, 1) + self.smooth  # + 1
+        c = torch.sum(target * target, 1) + self.smooth  # + 1
         d = (2 * a) / (b + c)
-        loss = 1 * (1 - d)
+        loss = self.beta * (1 - d)
         return loss
 
     def reg_loss(self, pred, target, weight):
@@ -66,7 +67,7 @@ class Heatmap:
         num_total_samples = num_total_samples if num_total_samples > 0 else None
         loss = self.loss_att(pred, target, weight, avg_factor=num_total_samples)
 
-        return self.lamda * loss
+        return self.alpha * loss
 
     def reg_mask(self, pred_att, gt_att):
         pos_num = int(np.sum(gt_att > 0.0))
