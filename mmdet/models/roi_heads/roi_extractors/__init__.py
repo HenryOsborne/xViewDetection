@@ -4,6 +4,9 @@ from .single_level_roi_extractor import SingleRoIExtractor
 from .soft_roi_selection import SoftRoIExtractor
 from .all_level_auxiliary import AuxAllLevelRoIExtractor
 
+from .obb.obb_single_level_roi_extractor import OBBSingleRoIExtractor
+from .obb.hbb_select_level_roi_extractor import HBBSelectLVLRoIExtractor
+
 __all__ = ['BaseRoIExtractor', 'SingleRoIExtractor', 'GenericRoIExtractor',
-           'SoftRoIExtractor', 'AuxAllLevelRoIExtractor'
+           'SoftRoIExtractor', 'AuxAllLevelRoIExtractor', 'OBBSingleRoIExtractor', 'HBBSelectLVLRoIExtractor'
            ]

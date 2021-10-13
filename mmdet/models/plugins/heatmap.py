@@ -10,12 +10,26 @@ class Heatmap:
                  loss_att=dict(
                      type='CrossEntropyLoss',
                      use_sigmoid=True,
-                     loss_weight=1.0)):
+                     loss_weight=1.0),
+                 lovasz_loss=dict(
+                     type='LovaszLoss',
+                     loss_type='binary',
+                     classes='all',
+                     per_image=True,
+                     reduction='mean'),
+                 use_lovasz=False,
+                 gamma=1):
         self.nb_downsample = 2  # is related to the downsample times in backbone
         self.fpn_lvl = fpn_lvl
-        self.alpha = 0.01  # balanced parameter of reg loss
-        self.beta = 1
-        self.smooth = 1
+        # -----------------------------------------------------------------------
+        self.use_lovasz = use_lovasz
+        self.alpha = 0.01  # balanced parameter of bce loss
+        self.beta = 1  # balanced parameter of dice loss
+        self.gamma = gamma  # balanced parameter of lovasz loss
+        self.smooth = 1  # smooth parameter for dice loss
+        if self.use_lovasz:
+            self.lovasz_loss = build_loss(lovasz_loss)
+        # -----------------------------------------------------------------------
         self.loss_att = build_loss(loss_att)
         self.min_size = 2  # 2 & 5 is related to anchor size (anchor-based method) or object size (anchor-free method)
         self.max_size = 5
@@ -33,6 +47,20 @@ class Heatmap:
             return 1
         else:
             return -1  # once the object can not be matched in i-th layer, it will be treated as background  marked as -1
+
+    def l_loss(self, pred, target, mask):
+        # lovasz loss
+        pred = pred.contiguous()
+        target = target.contiguous()
+        mask = mask.contiguous()
+
+        target[target > 0] = 1
+
+        num_total_samples = len(mask[mask > 0])
+        num_total_samples = num_total_samples if num_total_samples > 0 else None
+        loss = self.lovasz_loss(pred, target, mask, avg_factor=num_total_samples) * self.gamma
+
+        return loss
 
     def seg_loss(self, pred, target, mask):
         # dice loss
@@ -135,13 +163,20 @@ class Heatmap:
         gt[gt < 0] = 0
         loss_reg = self.reg_loss(pred, gt, selected_reg_masks)
         loss_seg = self.seg_loss(pred, gt, selected_seg_masks)
-
-        return loss_reg, loss_seg
+        if self.use_lovasz:
+            loss_lovasz = self.l_loss(pred, gt, selected_seg_masks)
+            return loss_reg, loss_seg, loss_lovasz
+        else:
+            return loss_reg, loss_seg
 
     def loss(self, reg_pred, reg_gt):
 
-        losses_reg, losses_seg = multi_apply(self.loss_single, reg_pred, reg_gt)
-        return dict(loss_reg=losses_reg, loss_seg=losses_seg)
+        if self.use_lovasz:
+            losses_reg, losses_seg, losses_lovasz = multi_apply(self.loss_single, reg_pred, reg_gt)
+            return dict(loss_reg=losses_reg, loss_seg=losses_seg, loss_lovasz=losses_lovasz)
+        else:
+            losses_reg, losses_seg = multi_apply(self.loss_single, reg_pred, reg_gt)
+            return dict(loss_reg=losses_reg, loss_seg=losses_seg)
 
     def target_single(self, anns, lvl, img_h, img_w):
         gt_mp = np.zeros((img_h, img_w))

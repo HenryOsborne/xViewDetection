@@ -9,9 +9,12 @@ from .sampling_result import SamplingResult
 from .score_hlr_sampler import ScoreHLRSampler
 from .ic_neg_sampler import ICNegSampler
 
+from .obb import (OBBSamplingResult, OBBBaseSampler, OBBRandomSampler,
+                  OBBOHEMSampler)
+
 __all__ = [
     'BaseSampler', 'PseudoSampler', 'RandomSampler',
     'InstanceBalancedPosSampler', 'IoUBalancedNegSampler', 'CombinedSampler',
     'OHEMSampler', 'SamplingResult', 'ScoreHLRSampler',
-    'ICNegSampler'
+    'ICNegSampler', 'OBBOHEMSampler', 'OBBRandomSampler', 'OBBBaseSampler', 'OBBSamplingResult'
 ]

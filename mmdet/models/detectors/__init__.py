@@ -43,6 +43,17 @@ from .DAL.two_stage_dal import TwoStageDetectorDAL
 from .DAL.faster_rcnn_dal import FasterRCNNDAL
 from .faster_rcnn_ssp import FasterSSPNet
 
+from .obb.obb_base import OBBBaseDetector
+from .obb.obb_two_stage import OBBTwoStageDetector
+from .obb.obb_single_stage import OBBSingleStageDetector
+from .obb.faster_rcnn_obb import FasterRCNNOBB
+from .obb.roi_transformer import RoITransformer
+from .obb.retinanet_obb import RetinaNetOBB
+from .obb.gliding_vertex import GlidingVertex
+from .obb.obb_rpn import OBBRPN
+from .obb.oriented_rcnn import OrientedRCNN
+from .obb.fcos_obb import FCOSOBB
+
 __all__ = [
     'ATSS', 'BaseDetector', 'SingleStageDetector',
     'KnowledgeDistillationSingleStageDetector', 'TwoStageDetector', 'RPN',
@@ -53,5 +64,8 @@ __all__ = [
     'SCNet', 'LocalLibra', 'LocalFasterRCNN',
     'LocalSparseRCNN', 'LocalDynamic', 'GlobalGLGA', 'GLTwoStage', 'TwoStageDetectorLocal',
     'LocalCascadeRCNN', 'LocalGLGA', 'LocalHybridTaskCascade', 'LocalTridentFasterRCNN',
-    'TwoStageDetectorDAL', 'FasterRCNNDAL', 'FasterSSPNet'
+    'TwoStageDetectorDAL', 'FasterRCNNDAL', 'FasterSSPNet',
+
+    'OBBBaseDetector', 'OBBTwoStageDetector', 'OBBSingleStageDetector',
+    'FasterRCNNOBB', 'RetinaNetOBB', 'RoITransformer'
 ]

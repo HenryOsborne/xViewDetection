@@ -18,6 +18,12 @@ from .dota_voc import DotaVOCDataset
 from .xview import XviewDataset
 from .xview_building import XviewDatasetBuilding
 
+from .obb.dota import DOTADataset
+from .obb.dior import DIORDataset
+from .obb.hrsc import HRSCDataset
+from .obb.msra_td500 import MSRATD500Dataset
+from .obb.rctw17 import RCTW17Dataset
+
 __all__ = [
     'CustomDataset', 'XMLDataset', 'CocoDataset', 'DeepFashionDataset',
     'VOCDataset', 'CityscapesDataset', 'LVISDataset', 'LVISV05Dataset',
@@ -25,5 +31,6 @@ __all__ = [
     'DistributedSampler', 'build_dataloader', 'ConcatDataset', 'RepeatDataset',
     'ClassBalancedDataset', 'WIDERFaceDataset', 'DATASETS', 'PIPELINES',
     'build_dataset', 'replace_ImageToTensor', 'get_loading_pipeline',
-    'NumClassCheckHook', 'VedaiDataset', 'DotaDataset', 'DotaVOCDataset', 'XviewDataset', 'XviewDatasetBuilding'
+    'NumClassCheckHook', 'VedaiDataset', 'DotaDataset', 'DotaVOCDataset', 'XviewDataset', 'XviewDatasetBuilding',
+    'DIORDataset', 'DOTADataset', 'HRSCDataset', 'MSRATD500Dataset', 'RCTW17Dataset'
 ]

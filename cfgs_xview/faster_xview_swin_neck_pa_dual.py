@@ -68,6 +68,8 @@ model = dict(
             loss_bbox=dict(type='SmoothL1Loss', beta=1.0, loss_weight=1.0)),
     ),
     train_cfg=dict(
+        use_consistent_supervision=True,
+        alpha=0.25,
         rpn=dict(
             assigner=dict(
                 type='MaxIoUAssigner',
@@ -109,8 +111,6 @@ model = dict(
                 add_gt_as_proposals=True),
             pos_weight=-1,
             debug=False,
-            use_consistent_supervision=True,
-            alpha=0.25
         )
     ),
     test_cfg=dict(

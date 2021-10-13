@@ -190,7 +190,7 @@ class CrossEntropyLoss(nn.Module):
             weight (torch.Tensor, optional): Sample-wise loss weight.
             avg_factor (int, optional): Average factor that is used to average
                 the loss. Defaults to None.
-            reduction (str, optional): The method used to reduce the loss.
+            reduction_override (str, optional): The method used to reduce the loss.
                 Options are "none", "mean" and "sum".
         Returns:
             torch.Tensor: The calculated loss

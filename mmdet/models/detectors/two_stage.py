@@ -30,22 +30,15 @@ class TwoStageDetector(BaseDetector):
         self.backbone = build_backbone(backbone)
 
         # ------------------------------------------------------------------------------------
-        if 'use_dynamic_head' in train_cfg.rcnn:
-            self.use_dynamic_head = train_cfg.rcnn.use_dynamic_head
-            self.dynamic_head_cfg = train_cfg.rcnn.dynamic_head_cfg
-        else:
-            self.use_dynamic_head = False
-            self.dynamic_head_cfg = None
-
-        if 'use_consistent_supervision' in train_cfg.rcnn:
+        if 'use_consistent_supervision' in train_cfg:
             self.use_consistent_supervision = train_cfg.rcnn.use_consistent_supervision
         else:
             self.use_consistent_supervision = False
 
-        if 'show_feature' in test_cfg.rcnn:
-            assert test_cfg.rcnn.feature_dir is not None('Please specifiy feature save dir')
-            self.show_feature = test_cfg.rcnn.show_feature
-            self.feature_dir = test_cfg.rcnn.feature_dir
+        if 'show_feature' in test_cfg:
+            assert test_cfg.feature_dir is not None('Please specifiy feature save dir')
+            self.show_feature = test_cfg.show_feature
+            self.feature_dir = test_cfg.feature_dir
         else:
             self.show_feature = False
             self.feature_dir = None
@@ -71,14 +64,6 @@ class TwoStageDetector(BaseDetector):
             roi_head.update(train_cfg=rcnn_train_cfg)
             roi_head.update(test_cfg=test_cfg.rcnn)
             self.roi_head = build_head(roi_head)
-
-        if self.use_dynamic_head:
-            assert self.dynamic_head_cfg is not None
-            self.dynamic_head = DynamicHead(self.dynamic_head_cfg['num_block'],
-                                            self.dynamic_head_cfg['Level'],
-                                            self.dynamic_head_cfg['Spatial'],
-                                            self.dynamic_head_cfg['Channel']
-                                            )
 
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
@@ -188,9 +173,6 @@ class TwoStageDetector(BaseDetector):
             x, y = self.extract_feat(img)
         else:
             x = self.extract_feat(img)
-
-        if self.use_dynamic_head:
-            x = self.dynamic_head(list(x))
         # ------------------------------------------------------------------------------------
 
         losses = dict()

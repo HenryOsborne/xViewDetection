@@ -12,6 +12,12 @@ from .transforms import (Albu, CutOut, Expand, MinIoURandomCrop, Normalize,
                          Pad, PhotoMetricDistortion, RandomCenterCropPad,
                          RandomCrop, RandomFlip, Resize, SegRescale)
 
+from .obb.base import mask2obb, mask2poly, poly2mask
+from .obb.base import (LoadOBBAnnotations, Mask2OBB, OBBDefaultFormatBundle,
+                       OBBRandomFlip, RandomOBBRotate, MultiScaleFlipRotateAug,
+                       FliterEmpty)
+from .obb.dota import LoadDOTASpecialInfo, DOTASpecialIgnore
+
 __all__ = [
     'Compose', 'to_tensor', 'ToTensor', 'ImageToTensor', 'ToDataContainer',
     'Transpose', 'Collect', 'DefaultFormatBundle', 'LoadAnnotations',
@@ -21,5 +27,7 @@ __all__ = [
     'MinIoURandomCrop', 'Expand', 'PhotoMetricDistortion', 'Albu',
     'InstaBoost', 'RandomCenterCropPad', 'AutoAugment', 'CutOut', 'Shear',
     'Rotate', 'ColorTransform', 'EqualizeTransform', 'BrightnessTransform',
-    'ContrastTransform', 'Translate'
+    'ContrastTransform', 'Translate',
+    'LoadOBBAnnotations', 'Mask2OBB', 'OBBDefaultFormatBundle', 'OBBRandomFlip',
+    'RandomOBBRotate', 'LoadDOTASpecialInfo', 'DOTASpecialIgnore', 'FliterEmpty'
 ]

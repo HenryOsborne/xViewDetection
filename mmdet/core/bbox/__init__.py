@@ -13,6 +13,19 @@ from .transforms import (bbox2distance, bbox2result, bbox2roi,
                          bbox_mapping_back, bbox_rescale, bbox_xyxy_to_cxcywh,
                          distance2bbox, roi2bbox)
 
+from .transforms_obb import (poly2obb, rectpoly2obb, poly2hbb, obb2poly, obb2hbb,
+                             hbb2poly, hbb2obb, bbox2type, hbb_flip, obb_flip, poly_flip,
+                             hbb_warp, obb_warp, poly_warp, hbb_mapping, obb_mapping,
+                             poly_mapping, hbb_mapping_back, obb_mapping_back,
+                             poly_mapping_back, arb_mapping, arb_mapping_back,
+                             get_bbox_type, get_bbox_dim, get_bbox_areas, choice_by_type,
+                             arb2result, arb2roi, distance2obb, regular_theta, regular_obb,
+                             mintheta_obb)
+from .iou_calculators import OBBOverlaps, PolyOverlaps
+from .samplers import (OBBSamplingResult, OBBBaseSampler, OBBRandomSampler,
+                       OBBOHEMSampler)
+from .coder import OBB2OBBDeltaXYWHTCoder, HBB2OBBDeltaXYWHTCoder
+
 __all__ = [
     'bbox_overlaps', 'BboxOverlaps2D', 'BaseAssigner', 'MaxIoUAssigner',
     'AssignResult', 'BaseSampler', 'PseudoSampler', 'RandomSampler',
@@ -23,5 +36,14 @@ __all__ = [
     'build_bbox_coder', 'BaseBBoxCoder', 'PseudoBBoxCoder',
     'DeltaXYWHBBoxCoder', 'TBLRBBoxCoder', 'CenterRegionAssigner',
     'bbox_rescale', 'bbox_cxcywh_to_xyxy', 'bbox_xyxy_to_cxcywh',
-    'RegionAssigner'
+    'RegionAssigner',
+
+    'poly2obb', 'rectpoly2obb', 'poly2hbb', 'obb2poly', 'obb2hbb', 'hbb2poly',
+    'hbb2obb', 'bbox2type', 'hbb_flip', 'obb_flip', 'poly_flip', 'hbb_warp', 'obb_warp',
+    'poly_warp', 'hbb_mapping', 'obb_mapping', 'poly_mapping', 'hbb_mapping_back',
+    'obb_mapping_back', 'poly_mapping_back', 'get_bbox_type', 'get_bbox_dim', 'get_bbox_areas',
+    'choice_by_type', 'arb2roi', 'arb2result', 'distance2obb', 'arb_mapping', 'arb_mapping_back',
+    'OBBOverlaps', 'PolyOverlaps', 'OBBSamplingResult', 'OBBBaseSampler', 'OBBRandomSampler',
+    'OBBOHEMSampler', 'OBB2OBBDeltaXYWHTCoder', 'HBB2OBBDeltaXYWHTCoder', 'regular_theta',
+    'regular_obb', 'mintheta_obb'
 ]

@@ -48,7 +48,8 @@ def make_cuda_ext(name, module, sources, sources_cuda=[]):
 
 
 def parse_requirements(fname='requirements.txt', with_version=True):
-    """Parse the package dependencies listed in a requirements file but strips
+    """
+    Parse the package dependencies listed in a requirements file but strips
     specific versioning information.
 
     Args:
@@ -67,7 +68,9 @@ def parse_requirements(fname='requirements.txt', with_version=True):
     require_fpath = fname
 
     def parse_line(line):
-        """Parse information from a line in a requirements text file."""
+        """
+        Parse information from a line in a requirements text file
+        """
         if line.startswith('-r '):
             # Allow specifying requirements in other files
             target = line.split(' ')[1]
@@ -137,6 +140,7 @@ if __name__ == '__main__':
         keywords='computer vision, object detection',
         url='https://github.com/open-mmlab/mmdetection',
         packages=find_packages(exclude=('configs', 'tools', 'demo')),
+        package_data={'mmdet.ops': ['*/*.so']},
         classifiers=[
             'Development Status :: 5 - Production/Stable',
             'License :: OSI Approved :: Apache Software License',
@@ -156,6 +160,120 @@ if __name__ == '__main__':
             'build': parse_requirements('requirements/build.txt'),
             'optional': parse_requirements('requirements/optional.txt'),
         },
-        ext_modules=[],
+        ext_modules=[
+            make_cuda_ext(
+                name='compiling_info',
+                module='mmdet.ops.utils',
+                sources=['src/compiling_info.cpp']),
+            make_cuda_ext(
+                name='nms_ext',
+                module='mmdet.ops.nms',
+                sources=['src/nms_ext.cpp', 'src/cpu/nms_cpu.cpp'],
+                sources_cuda=[
+                    'src/cuda/nms_cuda.cpp', 'src/cuda/nms_kernel.cu'
+                ]),
+            make_cuda_ext(
+                name='roi_align_ext',
+                module='mmdet.ops.roi_align',
+                sources=[
+                    'src/roi_align_ext.cpp',
+                    'src/cpu/roi_align_v2.cpp',
+                ],
+                sources_cuda=[
+                    'src/cuda/roi_align_kernel.cu',
+                    'src/cuda/roi_align_kernel_v2.cu'
+                ]),
+            make_cuda_ext(
+                name='roi_pool_ext',
+                module='mmdet.ops.roi_pool',
+                sources=['src/roi_pool_ext.cpp'],
+                sources_cuda=['src/cuda/roi_pool_kernel.cu']),
+            make_cuda_ext(
+                name='deform_conv_ext',
+                module='mmdet.ops.dcn',
+                sources=['src/deform_conv_ext.cpp'],
+                sources_cuda=[
+                    'src/cuda/deform_conv_cuda.cpp',
+                    'src/cuda/deform_conv_cuda_kernel.cu'
+                ]),
+            make_cuda_ext(
+                name='deform_pool_ext',
+                module='mmdet.ops.dcn',
+                sources=['src/deform_pool_ext.cpp'],
+                sources_cuda=[
+                    'src/cuda/deform_pool_cuda.cpp',
+                    'src/cuda/deform_pool_cuda_kernel.cu'
+                ]),
+            make_cuda_ext(
+                name='sigmoid_focal_loss_ext',
+                module='mmdet.ops.sigmoid_focal_loss',
+                sources=['src/sigmoid_focal_loss_ext.cpp'],
+                sources_cuda=['src/cuda/sigmoid_focal_loss_cuda.cu']),
+            make_cuda_ext(
+                name='masked_conv2d_ext',
+                module='mmdet.ops.masked_conv',
+                sources=['src/masked_conv2d_ext.cpp'],
+                sources_cuda=[
+                    'src/cuda/masked_conv2d_cuda.cpp',
+                    'src/cuda/masked_conv2d_kernel.cu'
+                ]),
+            make_cuda_ext(
+                name='carafe_ext',
+                module='mmdet.ops.carafe',
+                sources=['src/carafe_ext.cpp'],
+                sources_cuda=[
+                    'src/cuda/carafe_cuda.cpp',
+                    'src/cuda/carafe_cuda_kernel.cu'
+                ]),
+            make_cuda_ext(
+                name='carafe_naive_ext',
+                module='mmdet.ops.carafe',
+                sources=['src/carafe_naive_ext.cpp'],
+                sources_cuda=[
+                    'src/cuda/carafe_naive_cuda.cpp',
+                    'src/cuda/carafe_naive_cuda_kernel.cu'
+                ]),
+            make_cuda_ext(
+                name='corner_pool_ext',
+                module='mmdet.ops.corner_pool',
+                sources=['src/corner_pool.cpp']),
+
+
+            make_cuda_ext(
+                name='roi_align_rotated_ext',
+                module='mmdet.ops.roi_align_rotated',
+                sources=[
+                    'src/roi_align_rotated_cpu.cpp',
+                    'src/roi_align_rotated_ext.cpp'
+                ],
+                sources_cuda=['src/roi_align_rotated_cuda.cu']),
+            make_cuda_ext(
+                name='nms_rotated_ext',
+                module='mmdet.ops.nms_rotated',
+                sources=[
+                    'src/nms_rotated_cpu.cpp',
+                    'src/nms_rotated_ext.cpp'
+                ],
+                sources_cuda=[
+                    'src/nms_rotated_cuda.cu',
+                    'src/poly_nms_cuda.cu',
+                ]),
+            make_cuda_ext(
+                name='box_iou_rotated_ext',
+                module='mmdet.ops.box_iou_rotated',
+                sources=[
+                    'src/box_iou_rotated_cpu.cpp',
+                    'src/box_iou_rotated_ext.cpp'
+                ],
+                sources_cuda=['src/box_iou_rotated_cuda.cu']),
+            make_cuda_ext(
+                name='convex_ext',
+                module='mmdet.ops.convex',
+                sources=[
+                    'src/convex_cpu.cpp',
+                    'src/convex_ext.cpp'
+                ],
+                sources_cuda=['src/convex_cuda.cu']),
+        ],
         cmdclass={'build_ext': BuildExtension},
         zip_safe=False)

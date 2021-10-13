@@ -656,7 +656,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='MMDet test detector')
 
     #####################################################################################################
-    parser.add_argument('--work_dir', default='work_dirs/xview/faster_xview_swin_sspnet')
+    parser.add_argument('--work_dir', default='work_dirs/xview/faster_xview_sspnet_lovasz')
     # please point out work_dir in this place
     parser.add_argument('--score', default=0.3, type=float)
     # drop result if result's score small than args.score

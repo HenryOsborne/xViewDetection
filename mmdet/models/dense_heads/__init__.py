@@ -29,6 +29,12 @@ from .vfnet_head import VFNetHead
 from .yolact_head import YOLACTHead, YOLACTProtonet, YOLACTSegmHead
 from .yolo_head import YOLOV3Head
 
+from .obb.obb_anchor_head import OBBAnchorHead
+from .obb.obb_anchor_free_head import OBBAnchorFreeHead
+from .obb.obb_retina_head import OBBRetinaHead
+from .obb.oriented_rpn_head import OrientedRPNHead
+from .obb.obb_fcos_head import OBBFCOSHead
+
 __all__ = [
     'AnchorFreeHead', 'AnchorHead', 'GuidedAnchorHead', 'FeatureAdaption',
     'RPNHead', 'GARPNHead', 'RetinaHead', 'RetinaSepBNHead', 'GARetinaHead',
@@ -37,5 +43,6 @@ __all__ = [
     'PISARetinaHead', 'PISASSDHead', 'GFLHead', 'CornerHead', 'YOLACTHead',
     'YOLACTSegmHead', 'YOLACTProtonet', 'YOLOV3Head', 'PAAHead',
     'SABLRetinaHead', 'CentripetalHead', 'VFNetHead', 'TransformerHead',
-    'StageCascadeRPNHead', 'CascadeRPNHead', 'EmbeddingRPNHead', 'LDHead'
+    'StageCascadeRPNHead', 'CascadeRPNHead', 'EmbeddingRPNHead', 'LDHead',
+    'OBBFCOSHead', 'OBBRetinaHead', 'OBBAnchorHead', 'OBBAnchorFreeHead', 'OrientedRPNHead'
 ]
