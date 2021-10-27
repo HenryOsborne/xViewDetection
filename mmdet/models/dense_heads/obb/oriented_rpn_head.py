@@ -147,7 +147,7 @@ class OrientedRPNHead(RPNTestMixin, OBBAnchorHead):
             mlvl_bbox_preds.append(rpn_bbox_pred)
             mlvl_valid_anchors.append(anchors)
             level_ids.append(
-                scores.new_full((scores.size(0), ), idx, dtype=torch.long))
+                scores.new_full((scores.size(0),), idx, dtype=torch.long))
 
         scores = torch.cat(mlvl_scores)
         anchors = torch.cat(mlvl_valid_anchors)

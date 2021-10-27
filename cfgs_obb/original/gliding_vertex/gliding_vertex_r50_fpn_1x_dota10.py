@@ -66,7 +66,10 @@ model = dict(
             loss_fix=dict(
                 type='SmoothL1Loss', beta=1./3., loss_weight=1.0),
             loss_ratio=dict(
-                type='SmoothL1Loss', beta=1./3., loss_weight=16.0))))
+                type='SmoothL1Loss', beta=1./3., loss_weight=16.0)
+        )
+    )
+)
 # model training and testing settings
 train_cfg = dict(
     rpn=dict(

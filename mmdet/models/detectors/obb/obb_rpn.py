@@ -2,7 +2,8 @@ import BboxToolkit as bt
 import mmcv
 import numpy as np
 
-from mmdet.core import arb_mapping, tensor2imgs
+from mmdet.core import arb_mapping
+from mmcv.image import tensor2imgs
 from mmdet.models.builder import DETECTORS, build_backbone, build_head, build_neck
 from .obb_base import OBBBaseDetector
 from .obb_test_mixins import RotateAugRPNTestMixin
@@ -96,7 +97,7 @@ class OBBRPN(OBBBaseDetector, RotateAugRPNTestMixin):
         proposal_type = getattr(self.rpn_head, 'bbox_type', 'hbb')
         target_bboxes = gt_bboxes if proposal_type == 'hbb' else gt_obboxes
         target_bboxes_ignore = gt_bboxes_ignore if proposal_type == 'hbb' \
-                else gt_obboxes_ignore
+            else gt_obboxes_ignore
         losses = self.rpn_head.forward_train(x, img_metas, target_bboxes, None,
                                              target_bboxes_ignore)
         return losses

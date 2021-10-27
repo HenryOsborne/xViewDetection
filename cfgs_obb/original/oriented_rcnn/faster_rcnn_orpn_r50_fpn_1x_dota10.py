@@ -64,7 +64,10 @@ model = dict(
                 use_sigmoid=False,
                 loss_weight=1.0),
             loss_bbox=dict(type='SmoothL1Loss', beta=1.0,
-                           loss_weight=1.0))))
+                           loss_weight=1.0)
+        )
+    )
+)
 # model training and testing settings
 train_cfg = dict(
     rpn=dict(

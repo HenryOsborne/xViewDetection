@@ -639,7 +639,7 @@ class OBBAnchorHead(BaseDenseHead):
                 scores = cls_score.softmax(-1)
             bbox_pred = bbox_pred.permute(1, 2, 0).reshape(-1, self.reg_dim)
             nms_pre = cfg.get('nms_pre', -1)
-            if nms_pre > 0 and scores.shape[0] > nms_pre:
+            if 0 < nms_pre < scores.shape[0]:
                 # Get maximum scores for foreground classes.
                 if self.use_sigmoid_cls:
                     max_scores, _ = scores.max(dim=1)

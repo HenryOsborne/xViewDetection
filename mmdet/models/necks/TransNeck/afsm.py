@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from mmdet.models.necks.TransNeck import CoordAtt
 
 
 class BasicConv(nn.Module):
@@ -91,13 +92,14 @@ class SpatialGate(nn.Module):
         return x * scale
 
 
-class CBAM(nn.Module):
+class AFSM(nn.Module):
     def __init__(self, gate_channels, reduction_ratio=16, pool_types=['avg', 'max'], no_spatial=False):
-        super(CBAM, self).__init__()
+        super(AFSM, self).__init__()
         self.ChannelGate = ChannelGate(gate_channels, reduction_ratio, pool_types)
         self.no_spatial = no_spatial
         if not no_spatial:
-            self.SpatialGate = SpatialGate()
+            # self.SpatialGate = SpatialGate()
+            self.SpatialGate = CoordAtt(gate_channels, gate_channels)
 
     def forward(self, x):
         x_out = self.ChannelGate(x)
@@ -108,5 +110,5 @@ class CBAM(nn.Module):
 
 if __name__ == '__main__':
     x = torch.rand(1, 256, 200, 200)
-    cbam = CBAM(256, pool_types=['lse'])
+    cbam = AFSM(256)
     y = cbam(x)

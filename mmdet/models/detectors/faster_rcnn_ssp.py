@@ -47,19 +47,8 @@ class TwoStageDetector(BaseDetector):
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
 
-        # --------------------------------------------------------
-        if 'use_lovasz' in self.train_cfg:
-            use_lovasz = self.train_cfg.use_lovasz
-            gamma = self.train_cfg.gamma
-        else:
-            use_lovasz = False
-            gamma = self.train_cfg.gamma
-        if 'dual_head' in neck:
-            self.use_dual_head = neck.dual_head
-        # --------------------------------------------------------
-
         self.init_weights(pretrained=pretrained)
-        self.att_loss = Heatmap(use_lovasz=use_lovasz, gamma=gamma)
+        self.att_loss = Heatmap()
 
     @property
     def with_rpn(self):
@@ -95,13 +84,8 @@ class TwoStageDetector(BaseDetector):
         """Directly extract features from the backbone+neck."""
         x = self.backbone(img)
         if self.with_neck:
-            if self.use_dual_head:
-                x, att, raw_laternals = self.neck(x)
-            else:
-                x, att = self.neck(x)
-            if self.training and self.use_dual_head:
-                return x, att, raw_laternals
-            elif self.training:
+            x, att = self.neck(x)
+            if self.training:
                 return x, att
             else:
                 return x
@@ -162,10 +146,7 @@ class TwoStageDetector(BaseDetector):
         Returns:
             dict[str, Tensor]: a dictionary of loss components
         """
-        if self.use_dual_head:
-            x, att, raw_laternals = self.extract_feat(img)
-        else:
-            x, att = self.extract_feat(img)
+        x, att = self.extract_feat(img)
         gt_reg = self.att_loss.target(att, gt_bboxes)
         loss_att = self.att_loss.loss(reg_pred=att, reg_gt=gt_reg)
 
@@ -187,18 +168,10 @@ class TwoStageDetector(BaseDetector):
         else:
             proposal_list = proposals
 
-        # ------------------------------------------------------------------------------------
-        if self.use_dual_head:
-            roi_losses = self.roi_head.forward_train(x, raw_laternals, img_metas, proposal_list,
-                                                     gt_bboxes, gt_labels,
-                                                     gt_bboxes_ignore, gt_masks,
-                                                     **kwargs)
-        else:
-            roi_losses = self.roi_head.forward_train(x, img_metas, proposal_list,
-                                                     gt_bboxes, gt_labels,
-                                                     gt_bboxes_ignore, gt_masks,
-                                                     **kwargs)
-        # ------------------------------------------------------------------------------------
+        roi_losses = self.roi_head.forward_train(x, img_metas, proposal_list,
+                                                 gt_bboxes, gt_labels,
+                                                 gt_bboxes_ignore, gt_masks,
+                                                 **kwargs)
 
         losses.update(roi_losses)
 

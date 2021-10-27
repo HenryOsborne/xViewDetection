@@ -21,10 +21,15 @@ from .hign_fpn import HighFPN
 from .augneck import AugNeck
 from .ssfpn import SSFPN
 from .TransNeck.sspnet import SSFPNModified
+from .TransNeck.transFPN_coord_attention import TransFPN
+from .TransNeck.transFPN_coord_attention_afsm import TransFPN_AFSM
+from .compare import SENeck, CCNeck, CANeck, ECANeck
+from .new import SSNetSwinCBAM
 
 __all__ = [
     'FPN', 'BFP', 'ChannelMapper', 'HRFPN', 'NASFPN', 'FPN_CARAFE', 'PAFPN',
     'NASFCOS_FPN', 'RFP', 'YOLOV3Neck', 'FPG', 'GLNET_fpn', 'GlNetNeck',
     'GlNetNeckK1', 'GlNetNeck_3_1', 'GlPaNetNeck', 'MyNeck', 'FAPN', 'ASFFNeck',
-    'HighFPN', 'AugNeck', 'SSFPN', 'SSFPNModified'
+    'HighFPN', 'AugNeck', 'SSFPN', 'SSFPNModified', 'TransFPN', 'TransFPN_AFSM',
+    'SENeck', 'CCNeck', 'CANeck', 'ECANeck', 'SSNetSwinCBAM'
 ]

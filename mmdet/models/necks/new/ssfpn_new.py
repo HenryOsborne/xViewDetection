@@ -5,9 +5,67 @@ from mmcv.cnn import ConvModule, xavier_init
 from mmcv.runner import auto_fp16
 from mmdet.models.builder import NECKS
 import torch
-import mmcv
-import numpy as np
-import cv2
+from mmdet.models.necks.TransNeck import TransEncoder, CBAM
+from mmdet.models.backbones.swin_transformer import BasicLayer
+
+
+class SwinEncoder(nn.Module):
+    def __init__(self,
+                 in_channel,
+                 out_channels,
+                 kernel_size,
+                 dilation,
+                 padding,
+                 depth,
+                 num_heads,
+                 dim=96):
+        super(SwinEncoder, self).__init__()
+        self.dim = dim
+        self.input_proj = nn.Conv2d(in_channel, dim,
+                                    kernel_size=(kernel_size, kernel_size),
+                                    dilation=(dilation, dilation),
+                                    padding=(padding, padding))
+        self.encoder = BasicLayer(dim=dim, depth=depth, num_heads=num_heads)
+        self.norm = nn.LayerNorm(dim)
+        self.output_proj = nn.Conv2d(dim, out_channels, kernel_size=(1, 1))
+
+    def forward(self, x):
+        H, W = x.size(-2), x.size(-1)
+        x = self.input_proj(x)
+        x = x.flatten(2).transpose(1, 2)
+        x_out, H, W, x, Wh, Ww = self.encoder(x, H, W)
+
+        x_out = self.norm(x_out)
+        x_out = x_out.view(-1, H, W, self.dim).permute(0, 3, 1, 2).contiguous()
+        out = self.output_proj(x_out)
+
+        return out
+
+
+class SwinEncoder2(nn.Module):
+    def __init__(self,
+                 in_channel,
+                 dim,
+                 depth,
+                 num_heads):
+        super(SwinEncoder2, self).__init__()
+        self.dim = dim
+        self.input_proj = nn.Conv2d(in_channel, dim, kernel_size=(1, 1))
+        self.encoder = BasicLayer(dim=dim, depth=depth, num_heads=num_heads)
+        self.norm = nn.LayerNorm(dim)
+        self.output_proj = nn.Conv2d(dim, in_channel, kernel_size=(1, 1))
+
+    def forward(self, x):
+        H, W = x.size(-2), x.size(-1)
+        x = self.input_proj(x)
+        x = x.flatten(2).transpose(1, 2)
+        x_out, H, W, x, Wh, Ww = self.encoder(x, H, W)
+
+        x_out = self.norm(x_out)
+        x_out = x_out.view(-1, H, W, self.dim).permute(0, 3, 1, 2).contiguous()
+        out = self.output_proj(x_out)
+
+        return out
 
 
 class ASPP(nn.Module):
@@ -28,6 +86,7 @@ class ASPP(nn.Module):
         for dilation in dilations:
             kernel_size = 3 if dilation > 1 else 1
             padding = dilation if dilation > 1 else 0
+            # encoder = SwinEncoder(in_channels, out_channels, kernel_size, dilation, padding, 2, 3)
             conv = nn.Conv2d(
                 in_channels,
                 out_channels,
@@ -39,6 +98,8 @@ class ASPP(nn.Module):
             self.aspp.append(conv)
         self.gap = nn.AdaptiveAvgPool2d(1)
         self.init_weights()
+
+        self.swin_att = SwinEncoder2(256, 192, 2, 3)
 
     def init_weights(self):
         for m in self.modules():
@@ -53,31 +114,10 @@ class ASPP(nn.Module):
             out.append(F.relu_(self.aspp[aspp_idx](inp)))
         out[-1] = out[-1].expand_as(out[-2])
         out = torch.cat(out, dim=1)
+        # ------------------------------------------------
+        out = self.swin_att(out)
+        # ------------------------------------------------
         return out
-
-
-class ChannelPool(nn.Module):
-    def forward(self, x):
-        return torch.cat((torch.max(x, 1)[0].unsqueeze(1), torch.mean(x, 1).unsqueeze(1)), dim=1)
-
-
-class BasicConv(nn.Module):
-    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1, groups=1, relu=True,
-                 bn=True, bias=False):
-        super(BasicConv, self).__init__()
-        self.out_channels = out_planes
-        self.conv = nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=(stride, stride),
-                              padding=(padding, padding), dilation=(dilation, dilation), groups=groups, bias=bias)
-        self.bn = nn.BatchNorm2d(out_planes, eps=1e-5, momentum=0.01, affine=True) if bn else None
-        self.relu = nn.ReLU() if relu else None
-
-    def forward(self, x):
-        x = self.conv(x)
-        if self.bn is not None:
-            x = self.bn(x)
-        if self.relu is not None:
-            x = self.relu(x)
-        return x
 
 
 class CAM(nn.Module):
@@ -98,15 +138,11 @@ class CAM(nn.Module):
         self.down_conv = nn.ModuleList()
         self.att_conv = nn.ModuleList()
         for i in range(self.fpn_lvl):
-            # --------------------------------------------------------------------------------------------------
-            # self.att_conv.append(nn.Conv2d(inplanes // reduction_ratio,
-            #                                1,
-            #                                kernel_size=(3, 3),
-            #                                stride=(1, 1),  # 2 ** i
-            #                                padding=(1, 1)))
-            self.att_conv.append(ChannelPool())
-            self.att_conv.append(BasicConv(2, 1, (3, 3), stride=1, padding=(3 - 1) // 2, relu=False))
-            # --------------------------------------------------------------------------------------------------
+            self.att_conv.append(nn.Conv2d(inplanes // reduction_ratio,
+                                           1,
+                                           kernel_size=(3, 3),
+                                           stride=(1, 1),  # 2 ** i
+                                           padding=(1, 1)))
             if i == 0:
                 down_stride = 1
             else:
@@ -137,22 +173,19 @@ class CAM(nn.Module):
 
         for i in range(self.fpn_lvl):
             lvl_fea = self.down_conv[i](lvl_fea)
-            # ---------------------------------------------------
-            # lvl_att = self.att_conv[i](lvl_fea)
-            lvl_att = self.att_conv[2 * i](lvl_fea)
-            lvl_att = self.att_conv[2 * i + 1](lvl_att)
-            # ---------------------------------------------------
+            lvl_att = self.att_conv[i](lvl_fea)
+            # TODO:channel attention
             multi_atts.append(self.sigmoid(lvl_att))
 
         # visualization
 
         # for i in range(self.fpn_lvl):  # self.fpn_lvl
         #     att = (multi_atts[i].detach().cpu().numpy()[0])
-        #     att /= np.max(att)
-        #     att = np.power(att, 0.8)
+        #     # att /= np.max(att)
+        #     #att = np.power(att, 0.8)
         #     att = att * 255
         #     att = att.astype(np.uint8).transpose(1, 2, 0)
-        #     att = cv2.applyColorMap(att, cv2.COLORMAP_JET)
+        #    # att = cv2.applyColorMap(att, cv2.COLORMAP_JET)
         #     mmcv.imshow(att)
         #     cv2.waitKey(0)
 
@@ -160,16 +193,13 @@ class CAM(nn.Module):
 
 
 @NECKS.register_module()
-class SSFPNModified(nn.Module):
-
+class SSNetSwinCBAM(nn.Module):
     def __init__(self,
                  in_channels,
                  out_channels,
                  num_outs,
                  start_level=0,
                  end_level=-1,
-                 pool_ratios=[0.1, 0.2, 0.3],
-                 residual_feature_augmentation=False,
                  add_extra_convs=False,
                  extra_convs_on_inputs=True,
                  relu_before_extra_convs=False,
@@ -177,9 +207,10 @@ class SSFPNModified(nn.Module):
                  conv_cfg=None,
                  norm_cfg=None,
                  act_cfg=None,
-                 dual_head=False,
-                 upsample_cfg=dict(mode='nearest')):
-        super(SSFPNModified, self).__init__()
+                 upsample_cfg=dict(mode='nearest'),
+                 depth=2,
+                 num_heads=3):
+        super(SSNetSwinCBAM, self).__init__()
         assert isinstance(in_channels, list)
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -189,8 +220,6 @@ class SSFPNModified(nn.Module):
         self.no_norm_on_lateral = no_norm_on_lateral
         self.fp16_enabled = False
         self.upsample_cfg = upsample_cfg.copy()
-        self.use_dual_head = dual_head
-        self.use_rfa = residual_feature_augmentation
         self.CAM = CAM(out_channels)
         # self.grads = {}
         if end_level == -1:
@@ -215,20 +244,6 @@ class SSFPNModified(nn.Module):
                 self.add_extra_convs = 'on_input'
             else:
                 self.add_extra_convs = 'on_output'
-
-        # --------------------------------------------------------------------------------------------------------------
-        # add lateral conv for features generated by rato-invariant scale adaptive pooling
-        if self.use_rfa:
-            self.adaptive_pool_output_ratio = pool_ratios
-            self.high_lateral_conv = nn.ModuleList()
-            self.high_lateral_conv.extend(
-                [nn.Conv2d(out_channels, out_channels, (1, 1)) for k in
-                 range(len(self.adaptive_pool_output_ratio))])
-            self.high_lateral_conv_attention = nn.Sequential(
-                nn.Conv2d(out_channels * (len(self.adaptive_pool_output_ratio)), out_channels, (1, 1)),
-                nn.ReLU(),
-                nn.Conv2d(out_channels, len(self.adaptive_pool_output_ratio), (3, 3), padding=(1, 1)))
-        # --------------------------------------------------------------------------------------------------------------
 
         self.lateral_convs = nn.ModuleList()
         self.fpn_convs = nn.ModuleList()
@@ -274,6 +289,14 @@ class SSFPNModified(nn.Module):
                     inplace=False)
                 self.fpn_convs.append(extra_fpn_conv)
 
+        self.last_layer1 = TransEncoder(in_channels[-1], in_channels[-1], depth=depth, num_heads=num_heads)
+        self.last_layer2 = TransEncoder(in_channels[-1], in_channels[-1], depth=depth, num_heads=num_heads)
+        self.last_layer3 = TransEncoder(in_channels[-1], in_channels[-1], depth=depth, num_heads=num_heads)
+
+        self.cbam = nn.ModuleList()
+        for i in range(len(self.in_channels) - 1, 0, -1):
+            self.cbam.append(CBAM(out_channels, pool_types=['lse']))
+
     # default init_weights for conv(msra) and norm in ConvModule
     def init_weights(self):
         """Initialize the weights of FPN module."""
@@ -287,44 +310,22 @@ class SSFPNModified(nn.Module):
         """Forward function."""
         assert len(inputs) == len(self.in_channels)
 
+        c5 = self.last_layer1(inputs[-1])
+        c5 = self.last_layer2(c5)
+        c5 = self.last_layer3(c5)
+        inputs = list(inputs)
+        inputs[-1] = c5
+
         # build laterals
         laterals = [
             lateral_conv(inputs[i + self.start_level])
             for i, lateral_conv in enumerate(self.lateral_convs)
         ]
 
-        # --------------------------------------------------------------------------------------------------------------
-        if self.use_rfa:
-            # Residual Feature Augmentation
-            h, w = laterals[-1].size(2), laterals[-1].size(3)
-            # Ratio Invariant Adaptive Pooling
-            AdapPool_Features = [
-                F.interpolate(self.high_lateral_conv[j](F.adaptive_avg_pool2d(laterals[-1], output_size=(
-                    max(1, int(h * self.adaptive_pool_output_ratio[j])),
-                    max(1, int(w * self.adaptive_pool_output_ratio[j]))))),
-                              size=(h, w), mode='bilinear', align_corners=True) for j in
-                range(len(self.adaptive_pool_output_ratio))]
-            Concat_AdapPool_Features = torch.cat(AdapPool_Features, dim=1)
-            fusion_weights = self.high_lateral_conv_attention(Concat_AdapPool_Features)
-            fusion_weights = torch.sigmoid(fusion_weights)
-            adap_pool_fusion = 0
-            for i in range(len(self.adaptive_pool_output_ratio)):
-                adap_pool_fusion += torch.unsqueeze(fusion_weights[:, i, :, :], dim=1) * AdapPool_Features[i]
-        else:
-            adap_pool_fusion = torch.zeros_like(laterals[-1])
-        # --------------------------------------------------------------------------------------------------------------
-
         # build attention map
 
         att_list = self.CAM(laterals)
         laterals = [(1 + att_list[i]) * laterals[i] for i in range(len(laterals))]  #
-        if self.use_dual_head:
-            raw_laternals = laterals.copy()
-
-        # --------------------------------------------------------------------------------------------------------------
-        if self.use_rfa:
-            laterals[-1] = torch.sigmoid(laterals[-1] + adap_pool_fusion)
-        # --------------------------------------------------------------------------------------------------------------
 
         # build top-down path
         used_backbone_levels = len(laterals)
@@ -336,16 +337,21 @@ class SSFPNModified(nn.Module):
                                                  **self.upsample_cfg)
             else:
                 prev_shape = laterals[i - 1].shape[2:]
-
-                # get intersection of Adjacent attention maps
-                att_2x = F.interpolate(att_list[i], size=prev_shape, **self.upsample_cfg)
-                att_insec = att_list[i - 1] * att_2x
-
-                # get ROI of current attention map
-                select_gate = att_insec
-
-                laterals[i - 1] = laterals[i - 1] + select_gate * F.interpolate(
-                    laterals[i], size=prev_shape, **self.upsample_cfg)
+                laterals[i - 1] += F.interpolate(laterals[i], size=prev_shape, **self.upsample_cfg)
+                laterals[i - 1] = self.cbam[i - 1](laterals[i - 1])
+                # -----------------------------------------------------------------------------------------
+                # prev_shape = laterals[i - 1].shape[2:]
+                #
+                # # get intersection of Adjacent attention maps
+                # att_2x = F.interpolate(att_list[i], size=prev_shape, **self.upsample_cfg)
+                # att_insec = att_list[i - 1] * att_2x
+                #
+                # # get ROI of current attention map
+                # select_gate = att_insec
+                #
+                # laterals[i - 1] = laterals[i - 1] + select_gate * F.interpolate(
+                #     laterals[i], size=prev_shape, **self.upsample_cfg)
+                # -----------------------------------------------------------------------------------------
         # build outputs
 
         outs = [
@@ -376,17 +382,14 @@ class SSFPNModified(nn.Module):
                     else:
                         outs.append(self.fpn_convs[i](outs[-1]))
 
-        if self.use_dual_head:
-            return tuple(outs), tuple(att_list), tuple(raw_laternals)
-        else:
-            return tuple(outs), tuple(att_list)
+        return tuple(outs), tuple(att_list)
 
 
 if __name__ == '__main__':
-    z = [torch.randn(1, 256, 200, 200),
-         torch.randn(1, 512, 100, 100),
-         torch.randn(1, 1024, 50, 50),
-         torch.randn(1, 2048, 25, 25)]
-    neck = SSFPNModified(in_channels=[256, 512, 1024, 2048], out_channels=256, num_outs=5)
-    y = neck(z)
-    pass
+    x = [torch.randn(1, 96, 200, 200),
+         torch.randn(1, 192, 100, 100),
+         torch.randn(1, 384, 50, 50),
+         torch.randn(1, 768, 25, 25)]
+    neck = SSNetSwinCBAM(in_channels=[96, 192, 384, 768], out_channels=256, num_outs=5)
+    y = neck(x)
+    print(y)
