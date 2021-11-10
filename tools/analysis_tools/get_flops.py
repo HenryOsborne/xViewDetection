@@ -14,7 +14,7 @@ except ImportError:
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a detector')
     parser.add_argument('config', help='train config file path',
-                        default='')
+                        default='work_dirs/TransFPN/faster_rcnn_swin_spatial_xview/faster_rcnn_swin_spatial_xview.py')
     parser.add_argument(
         '--shape',
         type=int,

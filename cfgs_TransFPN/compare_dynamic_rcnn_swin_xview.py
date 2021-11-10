@@ -1,8 +1,8 @@
 img_scale = (800, 800)
-work_dir = './work_dirs/xview/faster_xview_ss_swin_cbam_plus_lius'
+work_dir = './work_dirs/TransFPN/compare_dynamic_rcnn_swin_xview'
 # model settings
 model = dict(
-    type='FasterSSPNet',
+    type='FasterRCNN',
     pretrained='points/swin_tiny_patch4_window7_224.pth',
     backbone=dict(
         type='SwinTransformer',
@@ -16,7 +16,7 @@ model = dict(
         use_checkpoint=False,
     ),
     neck=dict(
-        type='SSNetSwinCBAM',
+        type='FPN',
         in_channels=[96, 192, 384, 768],
         out_channels=256,
         num_outs=5),
@@ -24,23 +24,16 @@ model = dict(
         type='RPNHead',
         in_channels=256,
         feat_channels=256,
-        # ----------------------------------------
         anchor_generator=dict(
             type='AnchorGenerator',
             scales=[4],
             ratios=[0.5, 1.0, 2.0],
             strides=[4, 8, 16, 32, 64]),
-        # anchor_generator=dict(
-        #     type='AnchorGenerator',
-        #     # scales=[1.5, 2.5, 3.7, 8],
-        #     ratios=[0.4, 0.8, 1.4],
-        #     strides=[4, 8, 16, 32, 64]),
-        # ----------------------------------------
         loss_cls=dict(
             type='CrossEntropyLoss', use_sigmoid=True, loss_weight=1.0),
         loss_bbox=dict(type='SmoothL1Loss', beta=1.0 / 9.0, loss_weight=1.0)),
     roi_head=dict(
-        type='StandardRoIHead',
+        type='DynamicRoIHead',
         bbox_roi_extractor=dict(
             type='SingleRoIExtractor',
             roi_layer=dict(type='RoIAlign', output_size=7, sampling_ratio=2),
@@ -55,7 +48,7 @@ model = dict(
             reg_class_agnostic=False,
             loss_cls=dict(
                 type='CrossEntropyLoss', use_sigmoid=False, loss_weight=1.0),
-            loss_bbox=dict(type='SmoothL1Loss', beta=1.0, loss_weight=1.0)),
+            loss_bbox=dict(type='SmoothL1Loss', loss_weight=1.0, beta=1.0)),
     ),
     train_cfg=dict(
         rpn=dict(
@@ -64,32 +57,20 @@ model = dict(
                 pos_iou_thr=0.7,
                 neg_iou_thr=0.3,
                 min_pos_iou=0.3,
-                # if GT is too large, could lead to the explosion of GPU memory
-                # can change the value of gpu_assign_thr
-                # if number of GT > gpu_assign_thr, then use cpu to claculator iou
-                gpu_assign_thr=-1,
                 ignore_iof_thr=-1),
-            # ------------------------------------------
             sampler=dict(
                 type='RandomSampler',
                 num=256,
                 pos_fraction=0.5,
                 neg_pos_ub=-1,
                 add_gt_as_proposals=False),
-            # sampler=dict(
-            #     type='ICNegSampler',
-            #     num=256,
-            #     pos_fraction=0.5,
-            #     neg_pos_ub=-1,
-            #     add_gt_as_proposals=False),
-            # ------------------------------------------
             allowed_border=0,
             pos_weight=-1,
             debug=False),
         rpn_proposal=dict(
             nms_pre=10000,
-            nms_post=10000,
             max_per_img=10000,
+            nms_post=10000,
             nms=dict(type='nms', iou_threshold=0.7),
             min_bbox_size=0),
         rcnn=dict(
@@ -107,8 +88,12 @@ model = dict(
                 add_gt_as_proposals=True),
             pos_weight=-1,
             debug=False,
-            use_consistent_supervision=True,
-            alpha=0.25)),
+            dynamic_rcnn=dict(
+                iou_topk=1000,
+                beta_topk=10,
+                update_iter_interval=100,
+                initial_iou=0.4,
+                initial_beta=1.0))),
     test_cfg=dict(
         rpn=dict(
             nms_pre=10000,
@@ -117,15 +102,10 @@ model = dict(
             nms=dict(type='nms', iou_threshold=0.7),
             min_bbox_size=0),
         rcnn=dict(
-            # score_thr=0.05, nms=dict(type='nms', iou_thr=0.5), max_per_img=2000)
-            score_thr=0.3, nms=dict(type='nms', iou_threshold=0.2), max_per_img=10000)
-        # score_thr=0.05, nms=dict(type='soft_nms', iou_thr=0.15, min_score=0.3) , max_per_img=2000)
-        # soft-nms is also supported for rcnn testing
-        # e.g., nms=dict(type='soft_nms', iou_thr=0.5, min_score=0.05)
-    )
-)
-
-# dataset settings
+            score_thr=0.3,
+            nms=dict(type='nms', iou_threshold=0.2),
+            max_per_img=10000)
+    ))
 dataset_type = 'XviewDataset'
 data_root = 'data/xview/'
 
@@ -134,6 +114,7 @@ img_norm_cfg = dict(
 train_pipeline = [
     dict(type='LoadImageFromFile'),
     dict(type='LoadAnnotations', with_bbox=True),
+    # dict(type='Albu', transforms = [{"type": 'RandomRotate90'}]),#数据增强
     dict(type='Resize', img_scale=img_scale, keep_ratio=False),
     dict(type='RandomFlip', flip_ratio=0.5),
     dict(type='Normalize', **img_norm_cfg),
@@ -156,7 +137,6 @@ test_pipeline = [
             dict(type='Collect', keys=['img']),
         ])
 ]
-
 data = dict(
     samples_per_gpu=1,
     workers_per_gpu=2,
@@ -175,30 +155,26 @@ data = dict(
         ann_file=data_root + 'annotations/instances_val2017.json',
         img_prefix=data_root + 'images/',
         pipeline=test_pipeline))
-# optimizer
-custom_hooks = [dict(type='NumClassCheckHook')]
+
+evaluation = dict(interval=50, metric='bbox')
 optimizer = dict(type='SGD', lr=0.0025, momentum=0.9, weight_decay=0.0001)
 optimizer_config = dict(grad_clip=dict(max_norm=35, norm_type=2))
-# learning policy
 lr_config = dict(
     policy='step',
     warmup='linear',
     warmup_iters=500,
     warmup_ratio=1.0 / 3,
-    step=[45, 48])
+    step=[27, 29])
+runner = dict(type='EpochBasedRunner', max_epochs=30)
 checkpoint_config = dict(interval=10)
-# yapf:disable
-log_config = dict(
-    interval=50,
-    hooks=[
-        dict(type='TextLoggerHook'),
-    ])
-# yapf:enable
-# runtime settings
-evaluation = dict(interval=10, metric='bbox')
-runner = dict(type='EpochBasedRunner', max_epochs=50)
+log_config = dict(interval=50, hooks=[
+    dict(type='TextLoggerHook'),
+    dict(type='TensorboardLoggerHook')
+])
+custom_hooks = [dict(type='NumClassCheckHook')]
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 load_from = None
 resume_from = None
 workflow = [('train', 1)]
+gpu_ids = range(0, 1)

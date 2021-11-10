@@ -73,8 +73,21 @@ class fpn_module_global(nn.Module):
 
         return up_x + y
 
+    # feat = self.fpn_global.forward(c2_g, c3_g, c4_g, c5_g,
+    #                                c2_ext=self.c2_l, c3_ext=self.c3_l,
+    #                                c4_ext=self.c4_l, c5_ext=self.c5_l,
+    #                                ps0_ext=self.ps0_l, ps1_ext=self.ps1_l,
+    #                                ps2_ext=self.ps2_l, mode=3)
+
     def forward(self, c2, c3, c4, c5, c2_ext=None, c3_ext=None, c4_ext=None, c5_ext=None, ps0_ext=None, ps1_ext=None,
                 ps2_ext=None, mode=None):
+
+
+    # feat = self.fpn_global.forward(c2_g, c3_g, c4_g, c5_g,
+    #                                c2_ext=self.c2_l, c3_ext=self.c3_l,
+    #                                c4_ext=self.c4_l, c5_ext=self.c5_l,
+    #                                ps0_ext=self.ps0_l, ps1_ext=self.ps1_l,
+    #                                ps2_ext=self.ps2_l, mode=3)
 
         # Top-down
         if c5_ext is None:
@@ -206,6 +219,21 @@ class fpn_module_local(nn.Module):
         '''
         _, _, H, W = y.size()
         return F.interpolate(x, size=(H, W), **self._up_kwargs) + y
+
+
+
+
+    # ps0, ps1, ps2, ps3 = self.fpn_local.forward(
+    #     c2, c3, c4, c5,
+    #     c2_ext=self._crop_global(self.c2_g, top_lefts[oped[0]:oped[1]], ratio),
+    #     c3_ext=self._crop_global(self.c3_g, top_lefts[oped[0]:oped[1]], ratio),
+    #     c4_ext=self._crop_global(self.c4_g, top_lefts[oped[0]:oped[1]], ratio),
+    #     c5_ext=self._crop_global(self.c5_g, top_lefts[oped[0]:oped[1]], ratio),
+    #     ps0_ext=[self._crop_global(f, top_lefts[oped[0]:oped[1]], ratio) for f in self.ps0_g],
+    #     ps1_ext=[self._crop_global(f, top_lefts[oped[0]:oped[1]], ratio) for f in self.ps1_g],
+    #     ps2_ext=[self._crop_global(f, top_lefts[oped[0]:oped[1]], ratio) for f in self.ps2_g],
+    #     mode=3)
+
 
     # c2_l, c3_l, c4_l, c5_l,
     # c2_ext,  self._crop_global(self.c2_g, top_lefts, ratio),  return [crop]
@@ -562,7 +590,7 @@ class GLNET_fpn(nn.Module):
             c2, c3, c4, c5 = self.resnet_local.forward(patches)
             ps0, ps1, ps2, ps3 = self.fpn_local.forward(
                 c2, c3, c4, c5,
-                self._crop_global(self.c2_g, top_lefts[oped[0]:oped[1]], ratio),
+                c2_ext=self._crop_global(self.c2_g, top_lefts[oped[0]:oped[1]], ratio),
                 c3_ext=self._crop_global(self.c3_g, top_lefts[oped[0]:oped[1]], ratio),
                 c4_ext=self._crop_global(self.c4_g, top_lefts[oped[0]:oped[1]], ratio),
                 c5_ext=self._crop_global(self.c5_g, top_lefts[oped[0]:oped[1]], ratio),
@@ -746,6 +774,10 @@ class GLNET_fpn(nn.Module):
                                            c4_ext=self.c4_l, c5_ext=self.c5_l,
                                            ps0_ext=self.ps0_l, ps1_ext=self.ps1_l,
                                            ps2_ext=self.ps2_l, mode=3)
+
+
+
+
 
             self.clear_cache()
             return feat

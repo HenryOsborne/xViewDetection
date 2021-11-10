@@ -1,5 +1,5 @@
 img_scale = (800, 800)
-work_dir = './work_dirs/xview/faster_xview_ss_swin_cbam_plus_lius'
+work_dir = './work_dirs/TransFPN/faster_rcnn_swin_top_scale_xview'
 # model settings
 model = dict(
     type='FasterSSPNet',
@@ -16,7 +16,7 @@ model = dict(
         use_checkpoint=False,
     ),
     neck=dict(
-        type='SSNetSwinCBAM',
+        type='TransFPNTopScale',
         in_channels=[96, 192, 384, 768],
         out_channels=256,
         num_outs=5),

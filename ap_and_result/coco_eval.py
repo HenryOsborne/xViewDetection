@@ -656,7 +656,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='MMDet test detector')
 
     #####################################################################################################
-    parser.add_argument('--work_dir', default='work_dirs/xview/faster_xview_ss_swin_cbam')
+    parser.add_argument('--work_dir', default='work_dirs/TransFPN/faster_rcnn_swin_CANet_xview')
     # please point out work_dir in this place
     parser.add_argument('--score', default=0.3, type=float)
     # drop result if result's score small than args.score
@@ -664,7 +664,7 @@ def parse_args():
     # whether to draw pred box to img
     parser.add_argument('--dump_resfile', default=False, type=bool)
     # whether to save ResFile.json
-    parser.add_argument('--weight_file', type=str, default='epoch_50.pth')
+    parser.add_argument('--weight_file', type=str, default='epoch_30.pth')
     # choose weight file to eval
     parser.add_argument('--dataset', type=str, choices=['dota', 'xview'], default='xview')
     parser.add_argument('--classwise', type=bool, default=True)

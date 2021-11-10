@@ -220,7 +220,7 @@ class CAM(nn.Module):
 
 
 @NECKS.register_module()
-class SSNetSwinCBAM(nn.Module):
+class TransFPNTopScaleSpatial(nn.Module):
     def __init__(self,
                  in_channels,
                  out_channels,
@@ -237,7 +237,7 @@ class SSNetSwinCBAM(nn.Module):
                  upsample_cfg=dict(mode='nearest'),
                  depth=2,
                  num_heads=3):
-        super(SSNetSwinCBAM, self).__init__()
+        super(TransFPNTopScaleSpatial, self).__init__()
         assert isinstance(in_channels, list)
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -247,7 +247,7 @@ class SSNetSwinCBAM(nn.Module):
         self.no_norm_on_lateral = no_norm_on_lateral
         self.fp16_enabled = False
         self.upsample_cfg = upsample_cfg.copy()
-        self.CAM = CAM(out_channels)
+
         # self.grads = {}
         if end_level == -1:
             self.backbone_end_level = self.num_ins
@@ -316,6 +316,8 @@ class SSNetSwinCBAM(nn.Module):
                     inplace=False)
                 self.fpn_convs.append(extra_fpn_conv)
 
+        self.CAM = CAM(out_channels)
+
         self.last_layer1 = TransEncoder(in_channels[-1], in_channels[-1], depth=depth, num_heads=num_heads)
         self.last_layer2 = TransEncoder(in_channels[-1], in_channels[-1], depth=depth, num_heads=num_heads)
         self.last_layer3 = TransEncoder(in_channels[-1], in_channels[-1], depth=depth, num_heads=num_heads)
@@ -337,11 +339,13 @@ class SSNetSwinCBAM(nn.Module):
         """Forward function."""
         assert len(inputs) == len(self.in_channels)
 
+        # ------------------------------------------------------------------
         c5 = self.last_layer1(inputs[-1])
         c5 = self.last_layer2(c5)
         c5 = self.last_layer3(c5)
         inputs = list(inputs)
         inputs[-1] = c5
+        # ------------------------------------------------------------------
 
         # build laterals
         laterals = [
@@ -352,7 +356,9 @@ class SSNetSwinCBAM(nn.Module):
         # build attention map
 
         att_list = self.CAM(laterals)
-        laterals = [(1 + att_list[i]) * laterals[i] for i in range(len(laterals))]  #
+        # ------------------------------------------------------------------
+        laterals = [(1 + att_list[i]) * laterals[i] for i in range(len(laterals))]
+        # ------------------------------------------------------------------
 
         # build top-down path
         used_backbone_levels = len(laterals)
@@ -365,25 +371,19 @@ class SSNetSwinCBAM(nn.Module):
             else:
                 prev_shape = laterals[i - 1].shape[2:]
                 laterals[i - 1] += F.interpolate(laterals[i], size=prev_shape, **self.upsample_cfg)
+                # ------------------------------------------------------------------
                 laterals[i - 1] = self.cbam[i - 1](laterals[i - 1])
-                # -----------------------------------------------------------------------------------------
-                # prev_shape = laterals[i - 1].shape[2:]
-                #
-                # # get intersection of Adjacent attention maps
-                # att_2x = F.interpolate(att_list[i], size=prev_shape, **self.upsample_cfg)
-                # att_insec = att_list[i - 1] * att_2x
-                #
-                # # get ROI of current attention map
-                # select_gate = att_insec
-                #
-                # laterals[i - 1] = laterals[i - 1] + select_gate * F.interpolate(
-                #     laterals[i], size=prev_shape, **self.upsample_cfg)
-                # -----------------------------------------------------------------------------------------
-        # build outputs
+                # ------------------------------------------------------------------
 
+        # build outputs
+        # ------------------------------------------------------------------
         outs = [
             (1 + att_list[i]) * self.fpn_convs[i](laterals[i]) for i in range(used_backbone_levels)
         ]
+        # outs = [
+        #     self.fpn_convs[i](laterals[i]) for i in range(used_backbone_levels)
+        # ]
+        # ------------------------------------------------------------------
 
         # part 2: add extra levels
         if self.num_outs > len(outs):
@@ -417,6 +417,6 @@ if __name__ == '__main__':
          torch.randn(1, 192, 100, 100),
          torch.randn(1, 384, 50, 50),
          torch.randn(1, 768, 25, 25)]
-    neck = SSNetSwinCBAM(in_channels=[96, 192, 384, 768], out_channels=256, num_outs=5)
+    neck = TransFPNTopScaleSpatial(in_channels=[96, 192, 384, 768], out_channels=256, num_outs=5)
     y = neck(x)
     print(y)

@@ -75,6 +75,10 @@ def logsumexp_2d(tensor):
 class ChannelPool(nn.Module):
     def forward(self, x):
         return torch.cat((torch.max(x, 1)[0].unsqueeze(1), torch.mean(x, 1).unsqueeze(1)), dim=1)
+        # s, _ = torch.max(x, dim=1, keepdim=True)
+        # t = (x - s).exp().sum(dim=1, keepdim=True).log()
+        # outputs = s + t
+        # return outputs
 
 
 class SpatialGate(nn.Module):
@@ -108,5 +112,5 @@ class CBAM(nn.Module):
 
 if __name__ == '__main__':
     x = torch.rand(1, 256, 200, 200)
-    cbam = CBAM(256, pool_types=['lse'])
+    cbam = CBAM(256)
     y = cbam(x)

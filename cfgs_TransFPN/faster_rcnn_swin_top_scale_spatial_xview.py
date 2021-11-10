@@ -1,5 +1,5 @@
 img_scale = (800, 800)
-work_dir = './work_dirs/xview/faster_xview_ss_swin_cbam_plus_lius'
+work_dir = './work_dirs/TransFPN/faster_rcnn_swin_top_scale_spatial_xview'
 # model settings
 model = dict(
     type='FasterSSPNet',
@@ -16,7 +16,7 @@ model = dict(
         use_checkpoint=False,
     ),
     neck=dict(
-        type='SSNetSwinCBAM',
+        type='TransFPNTopScaleSpatial',
         in_channels=[96, 192, 384, 768],
         out_channels=256,
         num_outs=5),
@@ -185,7 +185,7 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=500,
     warmup_ratio=1.0 / 3,
-    step=[45, 48])
+    step=[27, 29])
 checkpoint_config = dict(interval=10)
 # yapf:disable
 log_config = dict(
@@ -196,7 +196,7 @@ log_config = dict(
 # yapf:enable
 # runtime settings
 evaluation = dict(interval=10, metric='bbox')
-runner = dict(type='EpochBasedRunner', max_epochs=50)
+runner = dict(type='EpochBasedRunner', max_epochs=30)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 load_from = None
