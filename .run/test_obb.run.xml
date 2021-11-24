@@ -1,0 +1,24 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="test_obb" type="PythonConfigurationType" factoryName="Python" folderName="analyze">
+    <module name="mmdetection" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="PARENT_ENVS" value="true" />
+    <envs>
+      <env name="PYTHONUNBUFFERED" value="1" />
+    </envs>
+    <option name="SDK_HOME" value="$USER_HOME$/anaconda3/envs/mmcv/bin/python" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="IS_MODULE_SDK" value="false" />
+    <option name="ADD_CONTENT_ROOTS" value="true" />
+    <option name="ADD_SOURCE_ROOTS" value="true" />
+    <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+    <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tools/test_obb.py" />
+    <option name="PARAMETERS" value="work_dirs/OBB/gliding_vertex_dota_obb/gliding_vertex_dota_obb.py work_dirs/OBB/gliding_vertex_dota_obb/gliding_vertex_r50_1x_dota10_epoch12.pth --format-only --options save_dir=work_dirs/OBB/gliding_vertex_dota_obb/result" />
+    <option name="SHOW_COMMAND_LINE" value="false" />
+    <option name="EMULATE_TERMINAL" value="false" />
+    <option name="MODULE_MODE" value="false" />
+    <option name="REDIRECT_INPUT" value="false" />
+    <option name="INPUT_FILE" value="" />
+    <method v="2" />
+  </configuration>
+</component>
