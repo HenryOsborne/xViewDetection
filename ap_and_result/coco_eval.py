@@ -610,6 +610,37 @@ def det(args):
     cfg.model.pretrained = None
     cfg.data.test.test_mode = True
 
+    # ---------------------------------------------------------------------------------------------------------
+
+    if args.assess_proposal_quality:
+        if args.mode == 'local':
+            img_sacle = (3000, 3000)
+        elif args.mode == 'global':
+            img_sacle = (800, 800)
+        else:
+            raise ValueError
+        img_norm_cfg = dict(mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375], to_rgb=True)
+        test_pipeline = [
+            dict(type='LoadImageFromFile'),
+            dict(type='LoadAnnotations', with_bbox=True),
+            dict(
+                type='MultiScaleFlipAug',
+                img_scale=img_sacle,
+                flip=False,
+                transforms=[
+                    dict(type='Resize', keep_ratio=False),
+                    dict(type='RandomFlip'),
+                    dict(type='Normalize', **img_norm_cfg),
+                    dict(type='Pad', size_divisor=32),
+                    dict(type='ImageToTensor', keys=['img']),
+                    dict(type='Collect', keys=['img', 'gt_bboxes', 'gt_labels']),
+                ])
+        ]
+        cfg.data.test.pipeline = test_pipeline
+        cfg.data.test.assess_proposal_quality = True
+        cfg.model.test_cfg.assess_proposal_quality = True
+        # ---------------------------------------------------------------------------------------------------------
+
     dataset = build_dataset(cfg.data.test)
     data_loader = build_dataloader(dataset, samples_per_gpu=1, workers_per_gpu=cfg.data.workers_per_gpu,
                                    dist=False,
@@ -631,7 +662,7 @@ def det(args):
 def set_param(self):
     p = self.params
 
-    ############################ 调用cocoeval时所需的参数 ########################################
+    # -------------------------------- 调用cocoeval时所需的参数 --------------------------------------------------
     p.maxDets = [100000]
     if args.iou_mode == 'single':
         p.iouThrs = np.array([0.5])
@@ -647,7 +678,7 @@ def set_param(self):
         p.areaRng = [[0 ** 2, 1e5 ** 2], [0 ** 2, 32 ** 2], [32 ** 2, 96 ** 2], [96 ** 2, 1e5 ** 2]]
     else:
         raise ValueError('wrong area_mode')
-    ########################################################################################
+    # ---------------------------------------------------------------------------------------------------------
 
     self.params = p
 
@@ -655,8 +686,8 @@ def set_param(self):
 def parse_args():
     parser = argparse.ArgumentParser(description='MMDet test detector')
 
-    #####################################################################################################
-    parser.add_argument('--work_dir', default='work_dirs/TransFPN/faster_rcnn_swin_CANet_xview')
+    # ---------------------------------------------------------------------------------------------------------
+    parser.add_argument('--work_dir', default='work_dirs/mode3_8_8_4_k1')
     # please point out work_dir in this place
     parser.add_argument('--score', default=0.3, type=float)
     # drop result if result's score small than args.score
@@ -664,10 +695,11 @@ def parse_args():
     # whether to draw pred box to img
     parser.add_argument('--dump_resfile', default=False, type=bool)
     # whether to save ResFile.json
-    parser.add_argument('--weight_file', type=str, default='epoch_30.pth')
+    parser.add_argument('--weight_file', type=str, default='epoch_20.pth')
     # choose weight file to eval
     parser.add_argument('--dataset', type=str, choices=['dota', 'xview'], default='xview')
     parser.add_argument('--classwise', type=bool, default=True)
+    parser.add_argument('--assess_proposal_quality', type=bool, default=True)
 
     parser.add_argument('--iou_mode', choices=['single', 'multiple'], type=str, default='single')
     # if iou_mode is single, only eval iouThr=0.5
@@ -676,7 +708,7 @@ def parse_args():
     # if area_mode is single, only eval areaRng='all'
     # else if area_mode is multiple, eval areaRng='all', 'small', 'medium', 'large'
     # it takes very long time, more than 20 minutes, use carefully
-    #####################################################################################################
+    # ---------------------------------------------------------------------------------------------------------
 
     parser.add_argument('--resize_width', default=3000, type=float, help='the width of image after resize')
     parser.add_argument('--resize_height', default=3000, type=float, help='the height of image after resize')

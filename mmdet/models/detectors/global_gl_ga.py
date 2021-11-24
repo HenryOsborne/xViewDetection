@@ -84,9 +84,10 @@ class GlobalGLGA(GLTwoStage):
 
         return losses
 
-    def simple_test(self, img, img_metas, proposals=None, rescale=False):
+    def simple_test(self, img, img_metas, proposals=None, rescale=False, **kwargs):
         """Test without augmentation."""
         assert self.with_bbox, 'Bbox head must be implemented.'
+        import numpy as np
 
         if self.MODE == 1:
             x = self.neck(img, None, None, None, mode=self.MODE)
@@ -110,6 +111,24 @@ class GlobalGLGA(GLTwoStage):
             proposal_list = self.rpn_head.simple_test_rpn(x, img_metas)
         else:
             proposal_list = proposals
+
+        # ------------------------------------------------------------------------------------
+        if self.assess_proposal_quality:
+            from mmdet.core.bbox.iou_calculators import build_iou_calculator
+            import numpy as np
+
+            gt_bboxes = kwargs['gt_bboxes'][0][0]
+            bboxes = proposal_list[0]
+            iou_calculator = dict(type='BboxOverlaps2D')
+            iou_calculator = build_iou_calculator(iou_calculator)
+            if len(gt_bboxes) != 0:
+                overlaps = iou_calculator(gt_bboxes, bboxes)
+                max_overlaps, _ = overlaps.max(dim=0)
+                max_overlaps = max_overlaps.cpu().numpy()
+                idx = max_overlaps >= 0.5
+                max_overlaps = max_overlaps[idx].tolist()
+                self.matched_proposal.extend(max_overlaps)
+        # ------------------------------------------------------------------------------------
 
         return self.roi_head.simple_test(
             x, proposal_list, img_metas, rescale=rescale)

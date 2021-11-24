@@ -733,11 +733,11 @@ class GlNetNeck_3_1(nn.Module):
 
         elif mode == 3:
             assert 'mode1' or 'global' in self.mode1_work_dir, 'please check config file->model->neck->mode1_work_dir'
-            weight_path = os.path.join(self.mode1_work_dir, 'epoch_20.pth')
+            weight_path = os.path.join(self.mode1_work_dir, 'epoch_50.pth')
             assert os.path.isfile(weight_path), 'please run mode1 first'
 
-            logger = get_root_logger()
-            logger.info(f'mode3 load state from mode1 {weight_path}')
+            # logger = get_root_logger()
+            # logger.info(f'mode3 load state from mode1 {weight_path}')
 
             global_fixed = GlNetNeck_3_1(2)
             global_fixed = nn.DataParallel(global_fixed)

@@ -13,6 +13,21 @@ from mmcv.runner import get_dist_info
 from mmdet.core import encode_mask_results
 
 
+def count_proposal(proposal):
+    print()
+    print('-' * 150)
+    print('start counting proposal distribution...')
+    cnt = [0 for _ in range(25)]
+    for i in proposal:
+        idx = int(i / 0.02 - 25)
+        assert 0 <= idx < 25
+        cnt[idx] += 1
+    print(cnt)
+    proportion = [i / len(proposal) for i in cnt]
+    print('total proposal is {}'.format(len(proposal)))
+    print('-' * 150)
+
+
 def single_gpu_test(model,
                     data_loader,
                     show=False,
@@ -61,6 +76,8 @@ def single_gpu_test(model,
 
         for _ in range(batch_size):
             prog_bar.update()
+    if hasattr(model.module, 'matched_proposal') and len(model.module.matched_proposal) != 0:
+        count_proposal(model.module.matched_proposal)
     return results
 
 

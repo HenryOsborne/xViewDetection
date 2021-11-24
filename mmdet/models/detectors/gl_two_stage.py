@@ -21,6 +21,12 @@ class GLTwoStage(BaseDetector):
         super(GLTwoStage, self).__init__()
         self.MODE = mode
 
+        self.matched_proposal = []
+        if 'assess_proposal_quality' in test_cfg:
+            self.assess_proposal_quality = test_cfg.assess_proposal_quality
+        else:
+            self.assess_proposal_quality = False
+
         if neck is not None:
             self.neck = build_neck(neck)
 
@@ -111,7 +117,7 @@ class GLTwoStage(BaseDetector):
                           mode=self.MODE, n_patch=batch_size, i_patch=i_patch, )
         elif self.MODE == 3:
             input_img = torch.zeros(1, 3, self.ori_shape[0], self.ori_shape[1])
-            patches, coordinates, templates, sizes, ratios = self.global_to_patch(input_img,self.p_size)
+            patches, coordinates, templates, sizes, ratios = self.global_to_patch(input_img, self.p_size)
             x = self.neck(img, patches, coordinates, ratios, templates, mode=self.MODE)
         elif self.MODE == 4:
             patches, coordinates, templates, sizes, ratios = self.global_to_patch(img, self.p_size)

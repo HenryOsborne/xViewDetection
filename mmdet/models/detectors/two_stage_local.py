@@ -33,6 +33,12 @@ class TwoStageDetectorLocal(BaseDetector):
         super(TwoStageDetectorLocal, self).__init__()
         self.backbone = build_backbone(backbone)
 
+        self.matched_proposal = []
+        if 'assess_proposal_quality' in test_cfg:
+            self.assess_proposal_quality = test_cfg.assess_proposal_quality
+        else:
+            self.assess_proposal_quality = False
+
         if neck is not None:
             self.neck = build_neck(neck)
 
@@ -100,7 +106,7 @@ class TwoStageDetectorLocal(BaseDetector):
             input_label = [input_label]
 
             feat_neck = self.extract_feat(input_patch)
-            ##############################################################################
+            # ---------------------------------------------------------------------------------------------------------
             if self.with_rpn:
                 proposal_cfg = self.train_cfg.get('rpn_proposal',
                                                   self.test_cfg.rpn)
@@ -114,19 +120,19 @@ class TwoStageDetectorLocal(BaseDetector):
                 losses = self.update_loss(losses, rpn_losses)
             else:
                 proposal_list = proposals
-            ##############################################################################
+            # ---------------------------------------------------------------------------------------------------------
             roi_losses = self.roi_head.forward_train(feat_neck, img_metas, proposal_list,
                                                      input_bbox, input_label,
                                                      gt_bboxes_ignore, gt_masks,
                                                      **kwargs)
             losses = self.update_loss(losses, roi_losses)
-            ##############################################################################
+            # ---------------------------------------------------------------------------------------------------------
             count_patch += 1
         losses = self.loss_mean(losses, batch_size)
 
         return losses
 
-    def simple_test(self, img, img_metas, proposals=None, rescale=False):
+    def simple_test(self, img, img_metas, proposals=None, rescale=False, **kwargs):
         """Test without augmentation."""
         assert self.with_bbox, 'Bbox head must be implemented.'
 
@@ -139,7 +145,7 @@ class TwoStageDetectorLocal(BaseDetector):
 
         i_patch = 0
         result = []
-        return_rpn = False
+        total_proposal = []
 
         for i in range(len(coordinates[0])):
             input_patch = patches[0][i_patch]
@@ -151,14 +157,12 @@ class TwoStageDetectorLocal(BaseDetector):
             else:
                 proposal_list = proposals
 
-            if return_rpn:
+            if self.assess_proposal_quality:
                 gl_proposal = self.patch_to_global(proposal_list, i_patch)
                 if i_patch > 0:
-                    result[0] = np.concatenate([result[0], gl_proposal[0].cpu().numpy()])
+                    total_proposal[0] = np.concatenate([total_proposal[0], gl_proposal[0].cpu().numpy()])
                 else:
-                    result.extend([gl_proposal[0].cpu().numpy()])
-                i_patch += 1
-                continue
+                    total_proposal.extend([gl_proposal[0].cpu().numpy()])
 
             bbox_results = self.roi_head.simple_test(
                 feat_neck, proposal_list, img_metas, rescale=rescale
@@ -171,6 +175,24 @@ class TwoStageDetectorLocal(BaseDetector):
             else:
                 result.extend(bbox_results)
             i_patch += 1
+
+        # ---------------------------------------------------------------------------------------------------------
+        if self.assess_proposal_quality:
+            from mmdet.core.bbox.iou_calculators import build_iou_calculator
+
+            gt_bboxes = kwargs['gt_bboxes'][0][0]
+            device = gt_bboxes.device
+            bboxes = torch.from_numpy(total_proposal[0]).to(device)
+            iou_calculator = dict(type='BboxOverlaps2D')
+            iou_calculator = build_iou_calculator(iou_calculator)
+            if len(gt_bboxes) != 0:
+                overlaps = iou_calculator(gt_bboxes, bboxes)
+                max_overlaps, _ = overlaps.max(dim=0)
+                max_overlaps = max_overlaps.cpu().numpy()
+                idx = max_overlaps >= 0.5
+                max_overlaps = max_overlaps[idx].tolist()
+                self.matched_proposal.extend(max_overlaps)
+        # ---------------------------------------------------------------------------------------------------------
 
         return result
 
