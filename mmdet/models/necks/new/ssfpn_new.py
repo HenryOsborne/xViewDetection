@@ -7,6 +7,9 @@ from mmdet.models.builder import NECKS
 import torch
 from mmdet.models.necks.TransNeck import TransEncoder, CBAM
 from mmdet.models.backbones.swin_transformer import BasicLayer
+import numpy as np
+import cv2
+import mmcv
 
 
 class SwinEncoder(nn.Module):
@@ -208,11 +211,11 @@ class CAM(nn.Module):
 
         # for i in range(self.fpn_lvl):  # self.fpn_lvl
         #     att = (multi_atts[i].detach().cpu().numpy()[0])
-        #     # att /= np.max(att)
-        #     #att = np.power(att, 0.8)
+        #     att /= np.max(att)
+        #     att = np.power(att, 0.8)
         #     att = att * 255
         #     att = att.astype(np.uint8).transpose(1, 2, 0)
-        #    # att = cv2.applyColorMap(att, cv2.COLORMAP_JET)
+        #     att = cv2.applyColorMap(att, cv2.COLORMAP_JET)
         #     mmcv.imshow(att)
         #     cv2.waitKey(0)
 

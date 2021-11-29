@@ -3,7 +3,8 @@ import torch.nn as nn
 import numpy as np
 from torchvision import transforms
 import os
-
+import mmcv
+import cv2
 # from mmdet.core import bbox2result, bbox2roi, build_assigner, build_sampler
 from ..builder import DETECTORS, build_backbone, build_head, build_neck
 from .base import BaseDetector
@@ -36,7 +37,6 @@ class TwoStageDetector(BaseDetector):
             self.use_consistent_supervision = False
 
         if 'show_feature' in test_cfg:
-            assert test_cfg.feature_dir is not None('Please specifiy feature save dir')
             self.show_feature = test_cfg.show_feature
             self.feature_dir = test_cfg.feature_dir
         else:
@@ -246,16 +246,28 @@ class TwoStageDetector(BaseDetector):
 
         # ------------------------------------------------------------------------------------
         if self.show_feature:
-            # TODO:使用生成热力图的方法
-            from PIL import Image
-            feature = x[0][0][0].cpu()
-            feature = 1.0 / (1 + np.exp(-1 * feature))
-            feature = np.round(feature * 255)
-            img = transforms.ToPILImage()(feature).convert('RGB')
-            img = img.resize((800, 800), Image.ANTIALIAS)
+            # from PIL import Image
+            # import numpy as np
+            #
+            # feature = x[0][0][0].cpu()
+            # feature = 1.0 / (1 + np.exp(-1 * feature))
+            # feature = np.round(feature * 255)
+            # img = transforms.ToPILImage()(feature).convert('RGB')
+            # img = img.resize((800, 800), Image.ANTIALIAS)
+            # img_name = img_metas[0]['ori_filename'].split('.')[0]
+            # os.makedirs('feature', exist_ok=True)
+            # img.save(self.feature_dir + str(img_name) + '_p2.jpg')
+            # --------------------------------------------------------------------------------
+            import numpy as np
+            from mmdet.utils import featuremap_to_heatmap
             img_name = img_metas[0]['ori_filename'].split('.')[0]
-            os.makedirs('feature', exist_ok=True)
-            img.save(self.feature_dir + str(img_name) + '_p2.jpg')
+            heatmap = featuremap_to_heatmap(x[0])
+            image = mmcv.imread(img_metas[0]['filename'])
+            heatmap = cv2.resize(heatmap, (image.shape[1], image.shape[0]))  # 将热力图的大小调整为与原始图像相同
+            heatmap = np.uint8(255 * heatmap)  # 将热力图转换为RGB格式
+            heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)  # 将热力图应用于原始图像
+            superimposed_img = heatmap * 0.4 + image  # 这里的0.4是热力图强度因子
+            cv2.imwrite(os.path.join(self.feature_dir, str(img_name) + '_p2.jpg'), superimposed_img)  # 将图像保存到硬盘
         # ------------------------------------------------------------------------------------
 
         # get origin input shape to onnx dynamic input shape

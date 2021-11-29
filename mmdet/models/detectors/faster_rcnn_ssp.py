@@ -6,6 +6,8 @@ from ..builder import DETECTORS, build_backbone, build_head, build_neck
 from .base import BaseDetector
 from mmdet.core.bbox.iou_calculators import build_iou_calculator
 from mmdet.models.plugins import Heatmap
+import os
+import mmcv
 
 
 class TwoStageDetector(BaseDetector):
@@ -27,11 +29,20 @@ class TwoStageDetector(BaseDetector):
         self.backbone = build_backbone(backbone)
         self.iou_calculator = build_iou_calculator(dict(type='BboxOverlaps2D'))
 
+        # ------------------------------------------------------------------------------------------
         self.matched_proposal = []
         if 'assess_proposal_quality' in test_cfg:
             self.assess_proposal_quality = test_cfg.assess_proposal_quality
         else:
             self.assess_proposal_quality = False
+
+        if 'show_feature' in test_cfg:
+            self.show_feature = test_cfg.show_feature
+            self.feature_dir = test_cfg.feature_dir
+        else:
+            self.show_feature = False
+            self.feature_dir = None
+        # ------------------------------------------------------------------------------------------
 
         if neck is not None:
             self.neck = build_neck(neck)
@@ -210,6 +221,32 @@ class TwoStageDetector(BaseDetector):
             proposal_list = self.rpn_head.simple_test_rpn(x, img_metas)
         else:
             proposal_list = proposals
+
+        # ------------------------------------------------------------------------------------
+        if self.show_feature:
+            # from PIL import Image
+            # import numpy as np
+            # img_name = img_metas[0]['ori_filename'].split('.')[0]
+            # feature = x[0][0][0].cpu().unsqueeze(0).detach().numpy()
+            # feature = 1.0 / (1 + np.exp(-1 * feature))
+            # feature = np.round(feature * 255)
+            # img = feature.astype(np.uint8).transpose(1, 2, 0)
+            # img = cv2.applyColorMap(img, cv2.COLORMAP_JET)
+            # img = cv2.resize(img, (800, 800))
+            # cv2.imwrite(os.path.join(self.feature_dir, str(img_name) + '_p2.jpg'), img)
+            # --------------------------------------------------------------------------------
+            import numpy as np
+            from mmdet.utils import featuremap_to_heatmap
+            img_name = img_metas[0]['ori_filename'].split('.')[0]
+            heatmap = featuremap_to_heatmap(x[0])
+            image = mmcv.imread(img_metas[0]['filename'])
+            heatmap = cv2.resize(heatmap, (image.shape[1], image.shape[0]))  # 将热力图的大小调整为与原始图像相同
+            heatmap = np.uint8(255 * heatmap)  # 将热力图转换为RGB格式
+            heatmap = cv2.applyColorMap(heatmap, cv2.COLORMAP_JET)  # 将热力图应用于原始图像
+            # superimposed_img = heatmap * 0.4 + image  # 这里的0.4是热力图强度因子
+            superimposed_img = heatmap * 0.4
+            cv2.imwrite(os.path.join(self.feature_dir, str(img_name) + '_p2.jpg'), superimposed_img)  # 将图像保存到硬盘
+        # ------------------------------------------------------------------------------------
 
         # ------------------------------------------------------------------------------------
         if self.assess_proposal_quality:

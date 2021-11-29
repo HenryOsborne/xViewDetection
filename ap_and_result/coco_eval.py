@@ -611,6 +611,10 @@ def det(args):
     cfg.data.test.test_mode = True
 
     # ---------------------------------------------------------------------------------------------------------
+    if args.show_feature:
+        cfg.model.test_cfg.show_feature = True
+        cfg.model.test_cfg.feature_dir = os.path.join(args.work_dir, 'feature')
+        os.makedirs(cfg.model.test_cfg.feature_dir, exist_ok=True)
 
     if args.assess_proposal_quality:
         if args.mode == 'local':
@@ -691,15 +695,19 @@ def parse_args():
     # please point out work_dir in this place
     parser.add_argument('--score', default=0.3, type=float)
     # drop result if result's score small than args.score
+    parser.add_argument('--weight_file', type=str, default='epoch_20.pth')
+    # choose weight file to eval
+    parser.add_argument('--dataset', type=str, choices=['dota', 'xview'], default='xview')
     parser.add_argument('--show', default=False, type=bool)
     # whether to draw pred box to img
     parser.add_argument('--dump_resfile', default=False, type=bool)
     # whether to save ResFile.json
-    parser.add_argument('--weight_file', type=str, default='epoch_20.pth')
-    # choose weight file to eval
-    parser.add_argument('--dataset', type=str, choices=['dota', 'xview'], default='xview')
-    parser.add_argument('--classwise', type=bool, default=True)
-    parser.add_argument('--assess_proposal_quality', type=bool, default=True)
+    parser.add_argument('--classwise', type=bool, default=False)
+    # wherther to eval classwise ap
+    parser.add_argument('--assess_proposal_quality', type=bool, default=False)
+    # calculate proposal number of feature maps
+    parser.add_argument('--show_feature', type=bool, default=False)
+    # show feature maps
 
     parser.add_argument('--iou_mode', choices=['single', 'multiple'], type=str, default='single')
     # if iou_mode is single, only eval iouThr=0.5
