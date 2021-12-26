@@ -147,17 +147,17 @@ class ASFF(nn.Module):
 
 
 @NECKS.register_module()
-class ASFFNeck(nn.Module):
+class ASFFFPN(nn.Module):
     def __init__(self,
                  in_channels,
                  out_channels,
-                 use_additional_level,
+                 use_additional_level=True,
                  mid_channels=[96, 192, 384, 768],
                  depth=2,
                  num_heads=3,
                  upsample_cfg=dict(mode='nearest')
                  ):
-        super(ASFFNeck, self).__init__()
+        super(ASFFFPN, self).__init__()
         self.upsample_cfg = upsample_cfg
 
         # input conv
@@ -166,26 +166,10 @@ class ASFFNeck(nn.Module):
         self.conv_c4 = ConvModule(in_channels[2], mid_channels[2], 1, inplace=False)
         self.conv_c5 = ConvModule(in_channels[3], mid_channels[3], 1, inplace=False)
 
-        # c5 encode
-        self.c5_encode1 = TransEncoder(mid_channels[-1], mid_channels[-1], depth=depth, num_heads=num_heads)
-        # self.c5_encode2 = TransEncoder(mid_channels[-1], mid_channels[-1], depth=depth, num_heads=num_heads)
-        # self.c5_encode3 = TransEncoder(mid_channels[-1], mid_channels[-1], depth=depth, num_heads=num_heads)
-
-        # c4,c3,c2 encode
-        self.c4_encode = TransEncoder(mid_channels[-2], mid_channels[-2], depth=depth, num_heads=num_heads)
-        self.c3_encode = TransEncoder(mid_channels[-3], mid_channels[-3], depth=depth, num_heads=num_heads)
-        self.c2_encode = TransEncoder(mid_channels[0], mid_channels[0], depth=depth, num_heads=num_heads)
-
         self.lateral_convs = nn.ModuleList()
         for i in range(len(mid_channels) - 1, 0, -1):
             l_conv = ConvModule(mid_channels[i], mid_channels[i - 1], 1, inplace=False)
             self.lateral_convs.append(l_conv)
-
-        self.cbam1 = CBAM(mid_channels[2])
-        self.cbam2 = CBAM(mid_channels[1])
-        self.cbam3 = CBAM(mid_channels[0])
-
-        # self.out_layer_p2 = TransEncoder(mid_channels[0], mid_channels[0], depth=depth, num_heads=num_heads)
 
         self.p5_fusion = ASFF(0, use_additional_level)
         self.p4_fusion = ASFF(1, use_additional_level)
@@ -209,21 +193,14 @@ class ASFFNeck(nn.Module):
 
         c2, c3, c4, c5 = inputs
 
-        c2 = self.c2_encode(self.conv_c2(c2))
-        c3 = self.c3_encode(self.conv_c3(c3))
-        c4 = self.c4_encode(self.conv_c4(c4))
-        c5 = self.conv_c5(c5)
-
-        p5 = self.c5_encode1(c5)
-        # p5 = self.c5_encode2(p5)
-        # p5 = self.c5_encode3(p5)
+        c2 = self.conv_c2(c2)
+        c3 = self.conv_c3(c3)
+        c4 = self.conv_c4(c4)
+        p5 = self.conv_c5(c5)
 
         p4 = F.interpolate(self.lateral_convs[0](p5), size=c4.size()[2:], **self.upsample_cfg) + c4
-        p4 = self.cbam1(p4)
         p3 = F.interpolate(self.lateral_convs[1](p4), size=c3.size()[2:], **self.upsample_cfg) + c3
-        p3 = self.cbam2(p3)
         p2 = F.interpolate(self.lateral_convs[2](p3), size=c2.size()[2:], **self.upsample_cfg) + c2
-        p2 = self.cbam3(p2)
 
         p5 = self.p5_fusion(p5, p4, p3, p2)
         p4 = self.p4_fusion(p5, p4, p3, p2)
@@ -248,6 +225,6 @@ if __name__ == '__main__':
          torch.randn(1, 512, 100, 100),
          torch.randn(1, 1024, 50, 50),
          torch.randn(1, 2048, 25, 25)]
-    model = ASFFNeck(in_channels=[256, 512, 1024, 2048], out_channels=256, use_additional_level=False)
+    model = ASFFFPN(in_channels=[256, 512, 1024, 2048], out_channels=256, use_additional_level=True)
     y = model(z)
     pass

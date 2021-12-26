@@ -16,6 +16,7 @@ import datetime
 import shutil
 import itertools
 from terminaltables import AsciiTable
+import matplotlib.pyplot as plt
 
 
 def computeIoU(self, imgId, catId):
@@ -537,6 +538,55 @@ def evaluate(args, anns):
     coco_accumulate(cocoEval)
     coco_summarize(cocoEval, args)
 
+    if args.pr_curve:
+        precisions = cocoEval.eval['precision']
+
+        if args.iou_mode == 'single':
+            pr_array1 = precisions[0, :, 0, 0, 0]
+            print(pr_array1)
+            x = np.arange(0.0, 1.01, 0.01)
+            plt.plot(x, pr_array1, label='iou=0.5')
+            plt.xlabel("recall")
+            plt.ylabel("precision")
+            plt.xlim(0, 1.0)
+            plt.ylim(0, 1.01)
+            plt.grid(True)
+            plt.legend(loc='lower left')
+            plt.show()
+            plt.savefig(os.path.join(args.work_dir, 'pr_curve.png'))
+        else:
+            pr_array1 = precisions[0, :, 0, 0, 0]
+            pr_array2 = precisions[1, :, 0, 0, 0]
+            pr_array3 = precisions[2, :, 0, 0, 0]
+            pr_array4 = precisions[3, :, 0, 0, 0]
+            pr_array5 = precisions[4, :, 0, 0, 0]
+            pr_array6 = precisions[5, :, 0, 0, 0]
+            pr_array7 = precisions[6, :, 0, 0, 0]
+            pr_array8 = precisions[7, :, 0, 0, 0]
+            pr_array9 = precisions[8, :, 0, 0, 0]
+            pr_array10 = precisions[9, :, 0, 0, 0]
+
+            x = np.arange(0.0, 1.01, 0.01)
+            plt.plot(x, pr_array1, label='iou=0.5')
+            plt.plot(x, pr_array2, label='iou=0.55')
+            plt.plot(x, pr_array3, label='iou=0.6')
+            plt.plot(x, pr_array4, label='iou=0.65')
+            plt.plot(x, pr_array5, label='iou=0.7')
+            plt.plot(x, pr_array6, label='iou=0.75')
+            plt.plot(x, pr_array7, label='iou=0.8')
+            plt.plot(x, pr_array8, label='iou=0.85')
+            plt.plot(x, pr_array9, label='iou=0.9')
+            plt.plot(x, pr_array10, label='iou=0.95')
+
+            plt.xlabel("recall")
+            plt.ylabel("precision")
+            plt.xlim(0, 1.0)
+            plt.ylim(0, 1.01)
+            plt.grid(True)
+            plt.legend(loc='lower left')
+            plt.show()
+            plt.savefig(os.path.join(args.work_dir, 'pr_curve.png'))
+
     if args.classwise:  # Compute per-category AP
         # Compute per-category AP
         # from https://github.com/facebookresearch/detectron2/
@@ -691,13 +741,14 @@ def parse_args():
     parser = argparse.ArgumentParser(description='MMDet test detector')
 
     # ---------------------------------------------------------------------------------------------------------
-    parser.add_argument('--work_dir', default='work_dirs/mode3_8_8_4_k1')
+    parser.add_argument('--work_dir', default='work_dirs/TransFPN/faster_rcnn_swin_top_scale_xview')
     # please point out work_dir in this place
     parser.add_argument('--score', default=0.3, type=float)
-    # drop result if result's score small than args.score
-    parser.add_argument('--weight_file', type=str, default='epoch_20.pth')
+    # drop result if result's score smaller than args.score
+    parser.add_argument('--weight_file', type=str, default='epoch_30.pth')
     # choose weight file to eval
-    parser.add_argument('--dataset', type=str, choices=['dota', 'xview'], default='xview')
+    parser.add_argument('--dataset', type=str, choices=['xview'], default='xview')
+    # only support xview now
     parser.add_argument('--show', default=False, type=bool)
     # whether to draw pred box to img
     parser.add_argument('--dump_resfile', default=False, type=bool)
@@ -707,7 +758,9 @@ def parse_args():
     parser.add_argument('--assess_proposal_quality', type=bool, default=False)
     # calculate proposal number of feature maps
     parser.add_argument('--show_feature', type=bool, default=False)
-    # show feature maps
+    # draw feature maps
+    parser.add_argument('--pr_curve', type=bool, default=True)
+    # draw pr_curve
 
     parser.add_argument('--iou_mode', choices=['single', 'multiple'], type=str, default='single')
     # if iou_mode is single, only eval iouThr=0.5
@@ -771,7 +824,12 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
     if args.show or not os.path.isfile(args.ResFile):
+        tik = time.time()
         anns = det(args)
+        tok = time.time()
+        print()
+        print('eval time:{}'.format(tok - tik))
+        print('FPS:{}'.format(245 / (tok - tik)))
         evaluate(args, anns)
     else:
         print('Load ResFile From Local...')

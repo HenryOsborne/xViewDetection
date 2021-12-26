@@ -31,7 +31,7 @@ class TwoStageDetector(BaseDetector):
         self.backbone = build_backbone(backbone)
 
         # ------------------------------------------------------------------------------------
-        if 'use_consistent_supervision' in train_cfg:
+        if 'use_consistent_supervision' in train_cfg.rcnn:
             self.use_consistent_supervision = train_cfg.rcnn.use_consistent_supervision
         else:
             self.use_consistent_supervision = False
@@ -52,7 +52,7 @@ class TwoStageDetector(BaseDetector):
 
         if neck is not None:
             if self.use_consistent_supervision:
-                neck.update({'use_dual_head': True})
+                # neck.update({'use_dual_head': True})
                 self.neck = build_neck(neck)
             else:
                 self.neck = build_neck(neck)
@@ -117,6 +117,8 @@ class TwoStageDetector(BaseDetector):
             else:
                 x = self.neck(x)
                 return x
+        else:
+            return x
         # ------------------------------------------------------------------------------------
 
     def forward_dummy(self, img):
@@ -126,7 +128,10 @@ class TwoStageDetector(BaseDetector):
         """
         outs = ()
         # backbone
-        x = self.extract_feat(img)
+        if self.use_consistent_supervision:
+            x, y = self.extract_feat(img)
+        else:
+            x = self.extract_feat(img)
         # rpn
         if self.with_rpn:
             rpn_outs = self.rpn_head(x)

@@ -185,7 +185,7 @@ lr_config = dict(
     warmup='linear',
     warmup_iters=500,
     warmup_ratio=1.0 / 3,
-    step=[45, 48])
+    step=[27, 29])
 checkpoint_config = dict(interval=10)
 # yapf:disable
 log_config = dict(
@@ -196,7 +196,7 @@ log_config = dict(
 # yapf:enable
 # runtime settings
 evaluation = dict(interval=10, metric='bbox')
-runner = dict(type='EpochBasedRunner', max_epochs=50)
+runner = dict(type='EpochBasedRunner', max_epochs=30)
 dist_params = dict(backend='nccl')
 log_level = 'INFO'
 load_from = None
