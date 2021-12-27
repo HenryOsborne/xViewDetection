@@ -741,7 +741,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='MMDet test detector')
 
     # ---------------------------------------------------------------------------------------------------------
-    parser.add_argument('--work_dir', default='work_dirs/TransFPN/faster_rcnn_swin_top_scale_xview')
+    parser.add_argument('--work_dir', default='work_dirs/ABFN/ABFN_swin_scale_spatial_xview')
     # please point out work_dir in this place
     parser.add_argument('--score', default=0.3, type=float)
     # drop result if result's score smaller than args.score
@@ -798,6 +798,8 @@ def parse_args():
     elif 'local' in bare_name or 'mode2' in bare_name:
         args.mode = 'local'
     elif 'mode3' in bare_name:
+        args.mode = 'global'
+    elif 'ABFN' in bare_name:
         args.mode = 'global'
     else:
         raise ValueError('Wrong work_dir name')

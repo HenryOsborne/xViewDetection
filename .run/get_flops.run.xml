@@ -13,7 +13,7 @@
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/tools/analysis_tools/get_flops.py" />
-    <option name="PARAMETERS" value="work_dirs/TransFPN/compare_faster_swin_augfpn_xview/compare_faster_swin_augfpn_xview.py" />
+    <option name="PARAMETERS" value="cfgs_ABFN/ABFN_swin_scale_spatial_xview.py" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />
