@@ -10,6 +10,7 @@ from mmdet.models.backbones.swin_transformer import BasicLayer
 import numpy as np
 import cv2
 import mmcv
+from mmdet.models.necks.compare.ca_net import CoordAtt
 
 
 class SwinEncoder(nn.Module):
@@ -219,7 +220,7 @@ class CAM(nn.Module):
 
 
 @NECKS.register_module()
-class ABFNNeckScaleSpatial(nn.Module):
+class ABFNNeckScaleCANet(nn.Module):
     def __init__(self,
                  in_channels,
                  out_channels,
@@ -237,7 +238,7 @@ class ABFNNeckScaleSpatial(nn.Module):
                  upsample_cfg=dict(mode='nearest'),
                  depth=2,
                  num_heads=3):
-        super(ABFNNeckScaleSpatial, self).__init__()
+        super(ABFNNeckScaleCANet, self).__init__()
         assert isinstance(in_channels, list)
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -319,7 +320,7 @@ class ABFNNeckScaleSpatial(nn.Module):
         # ----------------------------------------------------------------------------------
         self.cbam = nn.ModuleList()
         for i in range(len(self.in_channels) - 1, 0, -1):
-            self.cbam.append(CBAM(mid_channels, pool_types=['lse']))
+            self.cbam.append(CoordAtt(mid_channels, mid_channels))
         self.CAM = CAM(mid_channels)
         # ----------------------------------------------------------------------------------
 
@@ -416,6 +417,6 @@ if __name__ == '__main__':
          torch.randn(1, 192, 100, 100),
          torch.randn(1, 384, 50, 50),
          torch.randn(1, 768, 25, 25)]
-    neck = ABFNNeckScaleSpatial(in_channels=[96, 192, 384, 768], out_channels=256, num_outs=5)
+    neck = ABFNNeckScaleCANet(in_channels=[96, 192, 384, 768], out_channels=256, num_outs=5)
     y = neck(x)
     print(y)

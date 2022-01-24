@@ -26,7 +26,8 @@ from .TransNeck.transFPN_coord_attention_afsm import TransFPN_AFSM
 from .compare import SENeck, CCNeck, CANeck, ECANeck, PANet, FakeFPN
 from .new import SSNetSwinCBAM, TransFPNTop, TransFPNTopScaleSpatial, TransFPNTopScale, TransFPNTopSpatial, \
     TransFPNScaleSpatial, TransFPNSpatial, TransFPNScale, TransFPNCCNet, TransFPNCANet, TransFPNECANet, TransFPNNonLocal
-from .ABFNNeck import ABFNNeck, ABFNNeckScale, ABFNNeckSpatial, ABFNNeckScaleSpatial
+from .ABFNNeck import ABFNNeckScale, ABFNNeckSpatial, ABFNNeckScaleSpatialDualLSE, \
+    ABFNNeckScaleCBAM, ABFNNeckScaleCCNet, ABFNNeckScaleECANet, ABFNNeckScaleCANet
 
 __all__ = [
     'FPN', 'BFP', 'ChannelMapper', 'HRFPN', 'NASFPN', 'FPN_CARAFE', 'PAFPN',
@@ -40,5 +41,6 @@ __all__ = [
 
     'PANet', 'FakeFPN',
 
-    'ABFNNeck', 'ABFNNeckScale', 'ABFNNeckSpatial', 'ABFNNeckScaleSpatial'
+    'ABFNNeckScale', 'ABFNNeckSpatial', 'ABFNNeckScaleSpatialDualLSE',
+    'ABFNNeckScaleCBAM', 'ABFNNeckScaleCCNet', 'ABFNNeckScaleECANet', 'ABFNNeckScaleCANet'
 ]

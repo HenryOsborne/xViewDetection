@@ -1,23 +1,21 @@
 img_scale = (800, 800)
-work_dir = './work_dirs/ABFN/ABFN_swin_spatial_xview'
+work_dir = './work_dirs/ABFN/ABFN_res50_SSPNet_xview'
 # model settings
 model = dict(
-    type='FasterRCNN',
-    pretrained='points/swin_tiny_patch4_window7_224.pth',
+    type='FasterSSPNet',
+    pretrained='torchvision://resnet50',
     backbone=dict(
-        type='SwinTransformer',
-        embed_dim=96,
-        depths=[2, 2, 6, 2],
-        num_heads=[3, 6, 12, 24],
-        window_size=7,
-        ape=True,
-        drop_path_rate=0.1,
-        patch_norm=True,
-        use_checkpoint=False,
-    ),
+        type='ResNet',
+        depth=50,
+        num_stages=4,
+        out_indices=(0, 1, 2, 3),
+        frozen_stages=1,
+        norm_cfg=dict(type='BN', requires_grad=True),
+        norm_eval=True,
+        style='pytorch'),
     neck=dict(
-        type='ABFNNeckSpatial',
-        in_channels=[96, 192, 384, 768],
+        type='SSFPN',
+        in_channels=[256, 512, 1024, 2048],
         out_channels=256,
         num_outs=5),
     rpn_head=dict(
@@ -107,7 +105,7 @@ model = dict(
                 add_gt_as_proposals=True),
             pos_weight=-1,
             debug=False,
-            use_consistent_supervision=False,
+            use_consistent_supervision=True,
             alpha=0.25)),
     test_cfg=dict(
         rpn=dict(

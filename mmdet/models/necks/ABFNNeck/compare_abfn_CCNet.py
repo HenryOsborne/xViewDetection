@@ -5,120 +5,45 @@ from mmcv.cnn import ConvModule, xavier_init
 from mmcv.runner import auto_fp16
 from mmdet.models.builder import NECKS
 import torch
-from mmdet.models.necks.TransNeck import TransEncoder
+from mmdet.models.necks.TransNeck import TransEncoder, CBAM
 from mmdet.models.backbones.swin_transformer import BasicLayer
 import numpy as np
 import cv2
 import mmcv
+from mmdet.models.necks.compare.cc_net import CC_module
 
 
-class BasicConv(nn.Module):
-    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1, groups=1, relu=True,
-                 bn=True, bias=False):
-        super(BasicConv, self).__init__()
-        self.out_channels = out_planes
-        self.conv = nn.Conv2d(in_planes, out_planes, kernel_size=kernel_size, stride=(stride, stride),
-                              padding=(padding, padding), dilation=(dilation, dilation), groups=groups, bias=bias)
-        self.bn = nn.BatchNorm2d(out_planes, eps=1e-5, momentum=0.01, affine=True) if bn else None
-        self.relu = nn.ReLU() if relu else None
-
-    def forward(self, x):
-        x = self.conv(x)
-        if self.bn is not None:
-            x = self.bn(x)
-        if self.relu is not None:
-            x = self.relu(x)
-        return x
-
-
-class Flatten(nn.Module):
-    def forward(self, x):
-        return x.view(x.size(0), -1)
-
-
-class ChannelGate(nn.Module):
-    def __init__(self, gate_channels, reduction_ratio=16, pool_types=['avg', 'max']):
-        super(ChannelGate, self).__init__()
-        self.gate_channels = gate_channels
-        self.mlp = nn.Sequential(
-            Flatten(),
-            nn.Linear(gate_channels, gate_channels // reduction_ratio),
-            nn.ReLU(),
-            nn.Linear(gate_channels // reduction_ratio, gate_channels)
-        )
-        self.pool_types = pool_types
+class SwinEncoder(nn.Module):
+    def __init__(self,
+                 in_channel,
+                 out_channels,
+                 kernel_size,
+                 dilation,
+                 padding,
+                 depth,
+                 num_heads,
+                 dim=96):
+        super(SwinEncoder, self).__init__()
+        self.dim = dim
+        self.input_proj = nn.Conv2d(in_channel, dim,
+                                    kernel_size=(kernel_size, kernel_size),
+                                    dilation=(dilation, dilation),
+                                    padding=(padding, padding))
+        self.encoder = BasicLayer(dim=dim, depth=depth, num_heads=num_heads)
+        self.norm = nn.LayerNorm(dim)
+        self.output_proj = nn.Conv2d(dim, out_channels, kernel_size=(1, 1))
 
     def forward(self, x):
-        channel_att_sum = None
-        for pool_type in self.pool_types:
-            if pool_type == 'avg':
-                avg_pool = F.avg_pool2d(x, (x.size(2), x.size(3)), stride=(x.size(2), x.size(3)))
-                channel_att_raw = self.mlp(avg_pool)
-            elif pool_type == 'max':
-                max_pool = F.max_pool2d(x, (x.size(2), x.size(3)), stride=(x.size(2), x.size(3)))
-                channel_att_raw = self.mlp(max_pool)
-            elif pool_type == 'lp':
-                lp_pool = F.lp_pool2d(x, 2, (x.size(2), x.size(3)), stride=(x.size(2), x.size(3)))
-                channel_att_raw = self.mlp(lp_pool)
-            elif pool_type == 'lse':
-                # LSE pool only
-                lse_pool = logsumexp_2d(x)
-                channel_att_raw = self.mlp(lse_pool)
+        H, W = x.size(-2), x.size(-1)
+        x = self.input_proj(x)
+        x = x.flatten(2).transpose(1, 2)
+        x_out, H, W, x, Wh, Ww = self.encoder(x, H, W)
 
-            if channel_att_sum is None:
-                channel_att_sum = channel_att_raw
-            else:
-                channel_att_sum = channel_att_sum + channel_att_raw
+        x_out = self.norm(x_out)
+        x_out = x_out.view(-1, H, W, self.dim).permute(0, 3, 1, 2).contiguous()
+        out = self.output_proj(x_out)
 
-        scale = torch.sigmoid(channel_att_sum).unsqueeze(2).unsqueeze(3).expand_as(x)
-        return x * scale
-
-
-def logsumexp_2d(tensor):
-    tensor_flatten = tensor.view(tensor.size(0), tensor.size(1), -1)
-    s, _ = torch.max(tensor_flatten, dim=2, keepdim=True)
-    outputs = s + (tensor_flatten - s).exp().sum(dim=2, keepdim=True).log()
-    return outputs
-
-
-class ChannelPool(nn.Module):
-    def forward(self, x):
-        # --------------------------------------------------------------------------------------------
-        # return torch.cat((torch.max(x, 1)[0].unsqueeze(1), torch.mean(x, 1).unsqueeze(1)), dim=1)
-        s, _ = torch.max(x, dim=1, keepdim=True)
-        t = (x - s).exp().sum(dim=1, keepdim=True).log()
-        outputs = s + t
-        return outputs
-        # --------------------------------------------------------------------------------------------
-
-
-class SpatialGate(nn.Module):
-    def __init__(self):
-        super(SpatialGate, self).__init__()
-        kernel_size = 7
-        self.compress = ChannelPool()
-        self.spatial = BasicConv(1, 1, kernel_size, stride=1, padding=(kernel_size - 1) // 2, relu=False)
-
-    def forward(self, x):
-        x_compress = self.compress(x)
-        x_out = self.spatial(x_compress)
-        scale = torch.sigmoid(x_out)  # broadcasting
-        return x * scale
-
-
-class CBAM(nn.Module):
-    def __init__(self, gate_channels, reduction_ratio=16, pool_types=['avg', 'max'], no_spatial=False):
-        super(CBAM, self).__init__()
-        self.ChannelGate = ChannelGate(gate_channels, reduction_ratio, pool_types)
-        self.no_spatial = no_spatial
-        if not no_spatial:
-            self.SpatialGate = SpatialGate()
-
-    def forward(self, x):
-        x_out = self.ChannelGate(x)
-        if not self.no_spatial:
-            x_out = self.SpatialGate(x_out)
-        return x_out
+        return out
 
 
 class SwinEncoder2(nn.Module):
@@ -140,6 +65,11 @@ class SwinEncoder2(nn.Module):
         x_out = x_out.view(-1, H, W, self.dim).permute(0, 3, 1, 2).contiguous()
 
         return x_out
+
+
+class Flatten(nn.Module):
+    def forward(self, x):
+        return x.view(x.size(0), -1)
 
 
 class ASPP(nn.Module):
@@ -290,7 +220,7 @@ class CAM(nn.Module):
 
 
 @NECKS.register_module()
-class ABFNNeckSpatial(nn.Module):
+class ABFNNeckScaleCCNet(nn.Module):
     def __init__(self,
                  in_channels,
                  out_channels,
@@ -308,7 +238,7 @@ class ABFNNeckSpatial(nn.Module):
                  upsample_cfg=dict(mode='nearest'),
                  depth=2,
                  num_heads=3):
-        super(ABFNNeckSpatial, self).__init__()
+        super(ABFNNeckScaleCCNet, self).__init__()
         assert isinstance(in_channels, list)
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -390,9 +320,8 @@ class ABFNNeckSpatial(nn.Module):
         # ----------------------------------------------------------------------------------
         self.cbam = nn.ModuleList()
         for i in range(len(self.in_channels) - 1, 0, -1):
-            self.cbam.append(CBAM(mid_channels, pool_types=['lse']))
-        # ----------------------------------------------------------------------------------
-        # self.CAM = CAM(out_channels)
+            self.cbam.append(CC_module(mid_channels))
+        self.CAM = CAM(mid_channels)
         # ----------------------------------------------------------------------------------
 
     # default init_weights for conv(msra) and norm in ConvModule
@@ -416,10 +345,8 @@ class ABFNNeckSpatial(nn.Module):
 
         # build attention map
 
-        # ------------------------------------------------------------------------------
-        # att_list = self.CAM(laterals)
-        # laterals = [(1 + att_list[i]) * laterals[i] for i in range(len(laterals))]
-        # ------------------------------------------------------------------------------
+        att_list = self.CAM(laterals)
+        laterals = [(1 + att_list[i]) * laterals[i] for i in range(len(laterals))]  #
 
         # build top-down path
         used_backbone_levels = len(laterals)
@@ -482,10 +409,7 @@ class ABFNNeckSpatial(nn.Module):
                     else:
                         outs.append(self.fpn_convs[i](outs[-1]))
 
-        # ----------------------------------------------
-        return tuple(outs)
-        # return tuple(outs), tuple(att_list)
-        # ---------------------------------------------
+        return tuple(outs), tuple(att_list)
 
 
 if __name__ == '__main__':
@@ -493,6 +417,6 @@ if __name__ == '__main__':
          torch.randn(1, 192, 100, 100),
          torch.randn(1, 384, 50, 50),
          torch.randn(1, 768, 25, 25)]
-    neck = ABFNNeckSpatial(in_channels=[96, 192, 384, 768], out_channels=256, num_outs=5)
+    neck = ABFNNeckScaleCCNet(in_channels=[96, 192, 384, 768], out_channels=256, num_outs=5)
     y = neck(x)
     print(y)

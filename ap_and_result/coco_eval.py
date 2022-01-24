@@ -741,8 +741,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='MMDet test detector')
 
     # ---------------------------------------------------------------------------------------------------------
-    parser.add_argument('--work_dir', default='work_dirs/ABFN/ABFN_swin_scale_spatial_xview')
-    # please point out work_dir in this place
+    parser.add_argument('--work_dir', default='work_dirs/ABFN/ABFN_swin_SSPNet_xview')
+    # please point out work_dir in this placef
     parser.add_argument('--score', default=0.3, type=float)
     # drop result if result's score smaller than args.score
     parser.add_argument('--weight_file', type=str, default='epoch_30.pth')
@@ -759,7 +759,7 @@ def parse_args():
     # calculate proposal number of feature maps
     parser.add_argument('--show_feature', type=bool, default=False)
     # draw feature maps
-    parser.add_argument('--pr_curve', type=bool, default=True)
+    parser.add_argument('--pr_curve', type=bool, default=False)
     # draw pr_curve
 
     parser.add_argument('--iou_mode', choices=['single', 'multiple'], type=str, default='single')

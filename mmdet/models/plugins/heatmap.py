@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import torch
 from mmdet.models.builder import build_loss
@@ -11,24 +12,14 @@ class Heatmap:
                      type='CrossEntropyLoss',
                      use_sigmoid=True,
                      loss_weight=1.0),
-                 lovasz_loss=dict(
-                     type='LovaszLoss',
-                     loss_type='binary',
-                     classes='all',
-                     per_image=True,
-                     reduction='mean'),
-                 use_lovasz=False,
                  gamma=1):
         self.nb_downsample = 2  # is related to the downsample times in backbone
         self.fpn_lvl = fpn_lvl
         # -----------------------------------------------------------------------
-        self.use_lovasz = use_lovasz
         self.alpha = 0.01  # balanced parameter of bce loss
         self.beta = 1  # balanced parameter of dice loss
         self.gamma = gamma  # balanced parameter of lovasz loss
         self.smooth = 1  # smooth parameter for dice loss
-        if self.use_lovasz:
-            self.lovasz_loss = build_loss(lovasz_loss)
         # -----------------------------------------------------------------------
         self.loss_att = build_loss(loss_att)
         self.min_size = 2  # 2 & 5 is related to anchor size (anchor-based method) or object size (anchor-free method)
@@ -36,7 +27,6 @@ class Heatmap:
         self.neg_weight = 3
 
     def get_bbox_mask(self, area, lvl):
-
         min_area = 2 ** (lvl + self.min_size)
         max_area = 2 ** (lvl + self.max_size)
         if min_area < area < max_area:
@@ -47,20 +37,6 @@ class Heatmap:
             return 1
         else:
             return -1  # once the object can not be matched in i-th layer, it will be treated as background  marked as -1
-
-    def l_loss(self, pred, target, mask):
-        # lovasz loss
-        pred = pred.contiguous()
-        target = target.contiguous()
-        mask = mask.contiguous()
-
-        target[target > 0] = 1
-
-        num_total_samples = len(mask[mask > 0])
-        num_total_samples = num_total_samples if num_total_samples > 0 else None
-        loss = self.lovasz_loss(pred, target, mask, avg_factor=num_total_samples) * self.gamma
-
-        return loss
 
     def seg_loss(self, pred, target, mask):
         # dice loss
@@ -163,22 +139,13 @@ class Heatmap:
         gt[gt < 0] = 0
         loss_reg = self.reg_loss(pred, gt, selected_reg_masks)
         loss_seg = self.seg_loss(pred, gt, selected_seg_masks)
-        if self.use_lovasz:
-            loss_lovasz = self.l_loss(pred, gt, selected_seg_masks)
-            return loss_reg, loss_seg, loss_lovasz
-        else:
-            return loss_reg, loss_seg
+        return loss_reg, loss_seg
 
     def loss(self, reg_pred, reg_gt):
+        losses_reg, losses_seg = multi_apply(self.loss_single, reg_pred, reg_gt)
+        return dict(loss_reg=losses_reg, loss_seg=losses_seg)
 
-        if self.use_lovasz:
-            losses_reg, losses_seg, losses_lovasz = multi_apply(self.loss_single, reg_pred, reg_gt)
-            return dict(loss_reg=losses_reg, loss_seg=losses_seg, loss_lovasz=losses_lovasz)
-        else:
-            losses_reg, losses_seg = multi_apply(self.loss_single, reg_pred, reg_gt)
-            return dict(loss_reg=losses_reg, loss_seg=losses_seg)
-
-    def target_single(self, anns, lvl, img_h, img_w):
+    def target_single(self, anns, lvl, img_h, img_w, filename):
         gt_mp = np.zeros((img_h, img_w))
         for ann in anns:
             x1, y1, x2, y2 = ann
@@ -195,12 +162,30 @@ class Heatmap:
             value = self.get_bbox_mask(np.sqrt(w * h), lvl)
             gt_mp[t:d, l:r] = value
 
+        # ----------------------------------------------------------------------------------------
+        draw_label = False
+        if draw_label is True:
+            work_dir = 'work_dirs/ABFN/ABFN_sacle_label/supervised_heatmap'
+            os.makedirs(work_dir, exist_ok=True)
+            sub_dir = os.path.join(work_dir, filename.split('.')[0])
+            os.makedirs(sub_dir, exist_ok=True)
+            name = filename.split('.')[0] + '_c' + str(lvl + 2) + '.png'
+
+            gt_label = gt_mp.copy()
+            gt_label[gt_label < 0] = 0
+            gt_label = gt_label * 255.
+            gt_label = np.expand_dims(gt_label, axis=-1)
+
+            cv2.imwrite(os.path.join(sub_dir, name), gt_label)
+
+        # ----------------------------------------------------------------------------------------
+
         gt_mp = cv2.resize(gt_mp, (img_w // (2 ** (lvl + self.nb_downsample)), img_h // (
                 2 ** (lvl + self.nb_downsample))))  # down sample using bilinear interpolation method
         gt_mp = gt_mp[np.newaxis, np.newaxis, :, :]
         return torch.from_numpy(gt_mp)
 
-    def target(self, pred_att, anns):
+    def target(self, pred_att, anns, filename):
         # build Supervised attention heatmap
         self.fpn_lvl = len(pred_att)
 
@@ -213,10 +198,12 @@ class Heatmap:
         img_height = feats_height * (2 ** self.nb_downsample)
         img_width = feats_width * (2 ** self.nb_downsample)
 
+        filename = [filename] * 4
+
         mask_target = []
         for i in range(self.fpn_lvl):
             lvl_target = map(self.target_single, anns_t[i], lvl[i], np.full_like(lvl[i], img_height),
-                             np.full_like(lvl[i], img_width))
+                             np.full_like(lvl[i], img_width), filename)
             lvl_target = list(lvl_target)
             mask_target.append(torch.cat(lvl_target).to(device=pred_att[i].device))
 

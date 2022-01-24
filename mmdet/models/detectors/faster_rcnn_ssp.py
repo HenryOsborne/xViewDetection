@@ -164,7 +164,7 @@ class TwoStageDetector(BaseDetector):
             dict[str, Tensor]: a dictionary of loss components
         """
         x, att = self.extract_feat(img)
-        gt_reg = self.att_loss.target(att, gt_bboxes)
+        gt_reg = self.att_loss.target(att, gt_bboxes, img_metas[0]['ori_filename'])
         loss_att = self.att_loss.loss(reg_pred=att, reg_gt=gt_reg)
 
         losses = dict()

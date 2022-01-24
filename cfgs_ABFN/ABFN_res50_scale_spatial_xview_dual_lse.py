@@ -1,23 +1,21 @@
 img_scale = (800, 800)
-work_dir = './work_dirs/ABFN/ABFN_swin_scale_spatial'
+work_dir = './work_dirs/ABFN/ABFN_res50_scale_spatial_xview_dual_lse'
 # model settings
 model = dict(
     type='FasterSSPNet',
-    pretrained='points/swin_tiny_patch4_window7_224.pth',
+    pretrained='torchvision://resnet50',
     backbone=dict(
-        type='SwinTransformer',
-        embed_dim=96,
-        depths=[2, 2, 6, 2],
-        num_heads=[3, 6, 12, 24],
-        window_size=7,
-        ape=True,
-        drop_path_rate=0.1,
-        patch_norm=True,
-        use_checkpoint=False,
-    ),
+        type='ResNet',
+        depth=50,
+        num_stages=4,
+        out_indices=(0, 1, 2, 3),
+        frozen_stages=1,
+        norm_cfg=dict(type='BN', requires_grad=True),
+        norm_eval=True,
+        style='pytorch'),
     neck=dict(
-        type='ABFNNeck',
-        in_channels=[96, 192, 384, 768],
+        type='ABFNNeckScaleSpatialDualLSE',
+        in_channels=[256, 512, 1024, 2048],
         out_channels=256,
         num_outs=5),
     rpn_head=dict(

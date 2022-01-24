@@ -1,5 +1,5 @@
 img_scale = (800, 800)
-work_dir = './work_dirs/ABFN/ABFN_swin_scale_spatial_xview'
+work_dir = './work_dirs/ABFN/compare_ABFN_swin_scale_CCNet_xview'
 # model settings
 model = dict(
     type='FasterSSPNet',
@@ -16,7 +16,7 @@ model = dict(
         use_checkpoint=False,
     ),
     neck=dict(
-        type='ABFNNeckScaleSpatial',
+        type='ABFNNeckScaleCCNet',
         in_channels=[96, 192, 384, 768],
         out_channels=256,
         num_outs=5),

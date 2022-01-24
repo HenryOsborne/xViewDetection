@@ -34,3 +34,75 @@ Detect with work_dirs/ABFN/ABFN_swin_scale_xview/epoch_30.pth
  Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area= large | maxDets=100000 ] = 0.346
  Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area= large | maxDets=100000 ] = 0.034
 
+2021-12-28 16:36:20
+Detect with work_dirs/ABFN/ABFN_swin_scale_xview/epoch_30.pth
+ Average Precision  (AP) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.375
+ Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.535
+ Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.679
+ ----------------------------------------------------------------------------------------------
+ Average Precision  (AP) @[ IoU=0.50      | Score= 0.3 | area= small | maxDets=100000 ] = 0.528
+ Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area= small | maxDets=100000 ] = 0.534
+ Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area= small | maxDets=100000 ] = 0.985
+ ----------------------------------------------------------------------------------------------
+ Average Precision  (AP) @[ IoU=0.50      | Score= 0.3 | area=medium | maxDets=100000 ] = 0.176
+ Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area=medium | maxDets=100000 ] = 0.557
+ Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area=medium | maxDets=100000 ] = 0.179
+ ----------------------------------------------------------------------------------------------
+ Average Precision  (AP) @[ IoU=0.50      | Score= 0.3 | area= large | maxDets=100000 ] = 0.025
+ Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area= large | maxDets=100000 ] = 0.346
+ Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area= large | maxDets=100000 ] = 0.034
+
+2021-12-29 18:54:09
+Detect with work_dirs/ABFN/ABFN_swin_scale_xview/epoch_30.pth
+ Average Precision  (AP) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.352
+ Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.524
+ Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.644
+ ----------------------------------------------------------------------------------------------
+ Average Precision  (AP) @[ IoU=0.50      | Score= 0.3 | area= small | maxDets=100000 ] = 0.492
+ Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area= small | maxDets=100000 ] = 0.523
+ Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area= small | maxDets=100000 ] = 0.911
+ ----------------------------------------------------------------------------------------------
+ Average Precision  (AP) @[ IoU=0.50      | Score= 0.3 | area=medium | maxDets=100000 ] = 0.184
+ Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area=medium | maxDets=100000 ] = 0.549
+ Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area=medium | maxDets=100000 ] = 0.179
+ ----------------------------------------------------------------------------------------------
+ Average Precision  (AP) @[ IoU=0.50      | Score= 0.3 | area= large | maxDets=100000 ] = 0.036
+ Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area= large | maxDets=100000 ] = 0.360
+ Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area= large | maxDets=100000 ] = 0.038
+
+2021-12-29 20:02:16
+Detect with work_dirs/ABFN/ABFN_swin_scale_xview/epoch_30.pth
+ Average Precision  (AP) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.348
+ Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.518
+ Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.659
+ ----------------------------------------------------------------------------------------------
+ Average Precision  (AP) @[ IoU=0.50      | Score= 0.3 | area= small | maxDets=100000 ] = 0.507
+ Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area= small | maxDets=100000 ] = 0.517
+ Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area= small | maxDets=100000 ] = 0.984
+ ----------------------------------------------------------------------------------------------
+ Average Precision  (AP) @[ IoU=0.50      | Score= 0.3 | area=medium | maxDets=100000 ] = 0.187
+ Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area=medium | maxDets=100000 ] = 0.542
+ Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area=medium | maxDets=100000 ] = 0.180
+ ----------------------------------------------------------------------------------------------
+ Average Precision  (AP) @[ IoU=0.50      | Score= 0.3 | area= large | maxDets=100000 ] = 0.032
+ Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area= large | maxDets=100000 ] = 0.353
+ Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area= large | maxDets=100000 ] = 0.035
+
+2021-12-29 23:19:12
+Detect with work_dirs/ABFN/ABFN_swin_scale_xview/epoch_30.pth
+ Average Precision  (AP) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.397
+ Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.554
+ Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area=   all | maxDets=100000 ] = 0.682
+ ----------------------------------------------------------------------------------------------
+ Average Precision  (AP) @[ IoU=0.50      | Score= 0.3 | area= small | maxDets=100000 ] = 0.548
+ Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area= small | maxDets=100000 ] = 0.554
+ Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area= small | maxDets=100000 ] = 0.985
+ ----------------------------------------------------------------------------------------------
+ Average Precision  (AP) @[ IoU=0.50      | Score= 0.3 | area=medium | maxDets=100000 ] = 0.179
+ Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area=medium | maxDets=100000 ] = 0.548
+ Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area=medium | maxDets=100000 ] = 0.172
+ ----------------------------------------------------------------------------------------------
+ Average Precision  (AP) @[ IoU=0.50      | Score= 0.3 | area= large | maxDets=100000 ] = 0.025
+ Average Recall     (AR) @[ IoU=0.50      | Score= 0.3 | area= large | maxDets=100000 ] = 0.382
+ Precision          (PR) @[ IoU=0.50      | Score= 0.3 | area= large | maxDets=100000 ] = 0.037
+

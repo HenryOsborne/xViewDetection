@@ -1,8 +1,8 @@
 img_scale = (800, 800)
-work_dir = './work_dirs/ABFN/ABFN_swin_spatial_xview'
+work_dir = './work_dirs/ABFN/compare_ABFN_swin_scale_CBAM_xview'
 # model settings
 model = dict(
-    type='FasterRCNN',
+    type='FasterSSPNet',
     pretrained='points/swin_tiny_patch4_window7_224.pth',
     backbone=dict(
         type='SwinTransformer',
@@ -16,7 +16,7 @@ model = dict(
         use_checkpoint=False,
     ),
     neck=dict(
-        type='ABFNNeckSpatial',
+        type='ABFNNeckScaleCBAM',
         in_channels=[96, 192, 384, 768],
         out_channels=256,
         num_outs=5),
@@ -107,7 +107,7 @@ model = dict(
                 add_gt_as_proposals=True),
             pos_weight=-1,
             debug=False,
-            use_consistent_supervision=False,
+            use_consistent_supervision=True,
             alpha=0.25)),
     test_cfg=dict(
         rpn=dict(
