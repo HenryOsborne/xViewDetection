@@ -104,6 +104,10 @@ def xview_classes():
     return ['building']
 
 
+def aitod_classes():
+    return ['airplane', 'bridge', 'storage-tank', 'ship', 'swimming-pool', 'vehicle', 'person', 'wind-mill']
+
+
 dataset_aliases = {
     'voc': ['voc', 'pascal_voc', 'voc07', 'voc12'],
     'imagenet_det': ['det', 'imagenet_det', 'ilsvrc_det'],
@@ -113,7 +117,8 @@ dataset_aliases = {
     'cityscapes': ['cityscapes'],
     'vedai': ['vedai', 'VEDAI'],
     'dota': ['dota', 'DOTA'],
-    'xview': ['xview']
+    'xview': ['xview'],
+    'aitod': ['aitod'],
 }
 
 

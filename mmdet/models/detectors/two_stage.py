@@ -9,6 +9,7 @@ import cv2
 from ..builder import DETECTORS, build_backbone, build_head, build_neck
 from .base import BaseDetector
 from mmdet.models.plugins import DynamicHead
+from mmdet.models.plugins import Heatmap
 
 
 @DETECTORS.register_module()
@@ -33,6 +34,8 @@ class TwoStageDetector(BaseDetector):
         # ------------------------------------------------------------------------------------
         if 'use_consistent_supervision' in train_cfg.rcnn:
             self.use_consistent_supervision = train_cfg.rcnn.use_consistent_supervision
+        elif isinstance(train_cfg.rcnn, list) and 'use_consistent_supervision' in train_cfg.rcnn[-1]:
+            self.use_consistent_supervision = True  # For Cascade which has a list of rcnn
         else:
             self.use_consistent_supervision = False
 
@@ -48,6 +51,9 @@ class TwoStageDetector(BaseDetector):
             self.assess_proposal_quality = test_cfg.assess_proposal_quality
         else:
             self.assess_proposal_quality = False
+
+        if self.use_consistent_supervision:
+            self.att_loss = Heatmap()
         # ------------------------------------------------------------------------------------
 
         if neck is not None:
@@ -179,14 +185,17 @@ class TwoStageDetector(BaseDetector):
         Returns:
             dict[str, Tensor]: a dictionary of loss components
         """
+
+        losses = dict()
         # ------------------------------------------------------------------------------------
         if self.use_consistent_supervision:
-            x, y = self.extract_feat(img)
+            x, att = self.extract_feat(img)
+            gt_reg = self.att_loss.target(att, gt_bboxes, img_metas[0]['ori_filename'])
+            loss_att = self.att_loss.loss(reg_pred=att, reg_gt=gt_reg)
+            losses.update(loss_att)
         else:
             x = self.extract_feat(img)
         # ------------------------------------------------------------------------------------
-
-        losses = dict()
 
         # RPN forward and loss
         if self.with_rpn:
@@ -203,17 +212,11 @@ class TwoStageDetector(BaseDetector):
         else:
             proposal_list = proposals
 
-        # ------------------------------------------------------------------------------------
-        if self.use_consistent_supervision:
-            roi_losses = self.roi_head.forward_train(x, y, img_metas, proposal_list,
-                                                     gt_bboxes, gt_labels,
-                                                     gt_bboxes_ignore, gt_masks,
-                                                     **kwargs)
-        else:
-            roi_losses = self.roi_head.forward_train(x, img_metas, proposal_list,
-                                                     gt_bboxes, gt_labels,
-                                                     gt_bboxes_ignore, gt_masks,
-                                                     **kwargs)
+            # ------------------------------------------------------------------------------------
+        roi_losses = self.roi_head.forward_train(x, img_metas, proposal_list,
+                                                 gt_bboxes, gt_labels,
+                                                 gt_bboxes_ignore, gt_masks,
+                                                 **kwargs)
         # ------------------------------------------------------------------------------------
 
         losses.update(roi_losses)

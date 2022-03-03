@@ -24,6 +24,8 @@ from .obb.hrsc import HRSCDataset
 from .obb.msra_td500 import MSRATD500Dataset
 from .obb.rctw17 import RCTW17Dataset
 
+from .ai_tod import AiTODDataset
+
 __all__ = [
     'CustomDataset', 'XMLDataset', 'CocoDataset', 'DeepFashionDataset',
     'VOCDataset', 'CityscapesDataset', 'LVISDataset', 'LVISV05Dataset',
@@ -32,5 +34,5 @@ __all__ = [
     'ClassBalancedDataset', 'WIDERFaceDataset', 'DATASETS', 'PIPELINES',
     'build_dataset', 'replace_ImageToTensor', 'get_loading_pipeline',
     'NumClassCheckHook', 'VedaiDataset', 'DotaDataset', 'DotaVOCDataset', 'XviewDataset', 'XviewDatasetBuilding',
-    'DIORDataset', 'DOTADataset', 'HRSCDataset', 'MSRATD500Dataset', 'RCTW17Dataset'
+    'DIORDataset', 'DOTADataset', 'HRSCDataset', 'MSRATD500Dataset', 'RCTW17Dataset', 'AiTODDataset'
 ]
