@@ -1,0 +1,408 @@
+/home/dl/anaconda3/envs/mmcv/bin/python /home/dl/data/projects/wk/mmdetection/tools/analysis_tools/get_flops.py work_dirs/TransFPN/faster_rcnn_swin_xview/faster_rcnn_swin_xview.py
+/home/dl/data/projects/wk/mmcv/mmcv/utils/registry.py:255: UserWarning: The old API of register_module(module, force=False) is deprecated and will be removed, please use the new API register_module(name=None, force=False, module=None) instead.
+  'The old API of register_module(module, force=False) '
+2022-03-03 14:32:51,003 - mmdet - INFO - load model from: points/swin_tiny_patch4_window7_224.pth
+2022-03-03 14:32:51,172 - mmdet - WARNING - The model and loaded state dict do not match exactly
+
+unexpected key in source state_dict: norm.weight, norm.bias, head.weight, head.bias, layers.0.blocks.1.attn_mask, layers.1.blocks.1.attn_mask, layers.2.blocks.1.attn_mask, layers.2.blocks.3.attn_mask, layers.2.blocks.5.attn_mask
+
+missing keys in source state_dict: absolute_pos_embed, norm0.weight, norm0.bias, norm1.weight, norm1.bias, norm2.weight, norm2.bias, norm3.weight, norm3.bias
+
+FasterRCNN(
+  44.723 M, 99.280% Params, 137.745 GFLOPs, 100.000% FLOPs,
+  (backbone): SwinTransformer(
+    27.497 M, 61.041% Params, 58.985 GFLOPs, 42.822% FLOPs,
+    (patch_embed): PatchEmbed(
+      0.005 M, 0.011% Params, 0.196 GFLOPs, 0.142% FLOPs,
+      (proj): Conv2d(0.005 M, 0.010% Params, 0.188 GFLOPs, 0.137% FLOPs, 3, 96, kernel_size=(4, 4), stride=(4, 4))
+      (norm): LayerNorm(0.0 M, 0.000% Params, 0.008 GFLOPs, 0.006% FLOPs, (96,), eps=1e-05, elementwise_affine=True)
+    )
+    (pos_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+    (layers): ModuleList(
+      27.49 M, 61.024% Params, 58.775 GFLOPs, 42.669% FLOPs,
+      (0): BasicLayer(
+        0.298 M, 0.662% Params, 9.712 GFLOPs, 7.051% FLOPs,
+        (blocks): ModuleList(
+          0.224 M, 0.497% Params, 8.967 GFLOPs, 6.510% FLOPs,
+          (0): SwinTransformerBlock(
+            0.112 M, 0.248% Params, 4.484 GFLOPs, 3.255% FLOPs,
+            (norm1): LayerNorm(0.0 M, 0.000% Params, 0.008 GFLOPs, 0.006% FLOPs, (96,), eps=1e-05, elementwise_affine=True)
+            (attn): WindowAttention(
+              0.037 M, 0.083% Params, 1.519 GFLOPs, 1.103% FLOPs,
+              (qkv): Linear(0.028 M, 0.062% Params, 1.139 GFLOPs, 0.827% FLOPs, in_features=96, out_features=288, bias=True)
+              (attn_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (proj): Linear(0.009 M, 0.021% Params, 0.38 GFLOPs, 0.276% FLOPs, in_features=96, out_features=96, bias=True)
+              (proj_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (softmax): Softmax(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, dim=-1)
+            )
+            (drop_path): Identity(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+            (norm2): LayerNorm(0.0 M, 0.000% Params, 0.008 GFLOPs, 0.006% FLOPs, (96,), eps=1e-05, elementwise_affine=True)
+            (mlp): Mlp(
+              0.074 M, 0.165% Params, 2.949 GFLOPs, 2.141% FLOPs,
+              (fc1): Linear(0.037 M, 0.083% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=96, out_features=384, bias=True)
+              (act): GELU(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+              (fc2): Linear(0.037 M, 0.082% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=384, out_features=96, bias=True)
+              (drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+            )
+          )
+          (1): SwinTransformerBlock(
+            0.112 M, 0.248% Params, 4.484 GFLOPs, 3.255% FLOPs,
+            (norm1): LayerNorm(0.0 M, 0.000% Params, 0.008 GFLOPs, 0.006% FLOPs, (96,), eps=1e-05, elementwise_affine=True)
+            (attn): WindowAttention(
+              0.037 M, 0.083% Params, 1.519 GFLOPs, 1.103% FLOPs,
+              (qkv): Linear(0.028 M, 0.062% Params, 1.139 GFLOPs, 0.827% FLOPs, in_features=96, out_features=288, bias=True)
+              (attn_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (proj): Linear(0.009 M, 0.021% Params, 0.38 GFLOPs, 0.276% FLOPs, in_features=96, out_features=96, bias=True)
+              (proj_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (softmax): Softmax(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, dim=-1)
+            )
+            (drop_path): DropPath(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+            (norm2): LayerNorm(0.0 M, 0.000% Params, 0.008 GFLOPs, 0.006% FLOPs, (96,), eps=1e-05, elementwise_affine=True)
+            (mlp): Mlp(
+              0.074 M, 0.165% Params, 2.949 GFLOPs, 2.141% FLOPs,
+              (fc1): Linear(0.037 M, 0.083% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=96, out_features=384, bias=True)
+              (act): GELU(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+              (fc2): Linear(0.037 M, 0.082% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=384, out_features=96, bias=True)
+              (drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+            )
+          )
+        )
+        (downsample): PatchMerging(
+          0.074 M, 0.165% Params, 0.745 GFLOPs, 0.541% FLOPs,
+          (reduction): Linear(0.074 M, 0.164% Params, 0.737 GFLOPs, 0.535% FLOPs, in_features=384, out_features=192, bias=False)
+          (norm): LayerNorm(0.001 M, 0.002% Params, 0.008 GFLOPs, 0.006% FLOPs, (384,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+      (1): BasicLayer(
+        1.186 M, 2.633% Params, 9.906 GFLOPs, 7.192% FLOPs,
+        (blocks): ModuleList(
+          0.89 M, 1.975% Params, 9.165 GFLOPs, 6.654% FLOPs,
+          (0): SwinTransformerBlock(
+            0.445 M, 0.988% Params, 4.583 GFLOPs, 3.327% FLOPs,
+            (norm1): LayerNorm(0.0 M, 0.001% Params, 0.004 GFLOPs, 0.003% FLOPs, (192,), eps=1e-05, elementwise_affine=True)
+            (attn): WindowAttention(
+              0.148 M, 0.329% Params, 1.626 GFLOPs, 1.180% FLOPs,
+              (qkv): Linear(0.111 M, 0.247% Params, 1.219 GFLOPs, 0.885% FLOPs, in_features=192, out_features=576, bias=True)
+              (attn_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (proj): Linear(0.037 M, 0.082% Params, 0.406 GFLOPs, 0.295% FLOPs, in_features=192, out_features=192, bias=True)
+              (proj_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (softmax): Softmax(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, dim=-1)
+            )
+            (drop_path): DropPath(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+            (norm2): LayerNorm(0.0 M, 0.001% Params, 0.004 GFLOPs, 0.003% FLOPs, (192,), eps=1e-05, elementwise_affine=True)
+            (mlp): Mlp(
+              0.296 M, 0.657% Params, 2.949 GFLOPs, 2.141% FLOPs,
+              (fc1): Linear(0.148 M, 0.329% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=192, out_features=768, bias=True)
+              (act): GELU(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+              (fc2): Linear(0.148 M, 0.328% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=768, out_features=192, bias=True)
+              (drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+            )
+          )
+          (1): SwinTransformerBlock(
+            0.445 M, 0.988% Params, 4.583 GFLOPs, 3.327% FLOPs,
+            (norm1): LayerNorm(0.0 M, 0.001% Params, 0.004 GFLOPs, 0.003% FLOPs, (192,), eps=1e-05, elementwise_affine=True)
+            (attn): WindowAttention(
+              0.148 M, 0.329% Params, 1.626 GFLOPs, 1.180% FLOPs,
+              (qkv): Linear(0.111 M, 0.247% Params, 1.219 GFLOPs, 0.885% FLOPs, in_features=192, out_features=576, bias=True)
+              (attn_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (proj): Linear(0.037 M, 0.082% Params, 0.406 GFLOPs, 0.295% FLOPs, in_features=192, out_features=192, bias=True)
+              (proj_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (softmax): Softmax(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, dim=-1)
+            )
+            (drop_path): DropPath(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+            (norm2): LayerNorm(0.0 M, 0.001% Params, 0.004 GFLOPs, 0.003% FLOPs, (192,), eps=1e-05, elementwise_affine=True)
+            (mlp): Mlp(
+              0.296 M, 0.657% Params, 2.949 GFLOPs, 2.141% FLOPs,
+              (fc1): Linear(0.148 M, 0.329% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=192, out_features=768, bias=True)
+              (act): GELU(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+              (fc2): Linear(0.148 M, 0.328% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=768, out_features=192, bias=True)
+              (drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+            )
+          )
+        )
+        (downsample): PatchMerging(
+          0.296 M, 0.658% Params, 0.741 GFLOPs, 0.538% FLOPs,
+          (reduction): Linear(0.295 M, 0.655% Params, 0.737 GFLOPs, 0.535% FLOPs, in_features=768, out_features=384, bias=False)
+          (norm): LayerNorm(0.002 M, 0.003% Params, 0.004 GFLOPs, 0.003% FLOPs, (768,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+      (2): BasicLayer(
+        11.83 M, 26.260% Params, 29.555 GFLOPs, 21.456% FLOPs,
+        (blocks): ModuleList(
+          10.647 M, 23.635% Params, 28.816 GFLOPs, 20.920% FLOPs,
+          (0): SwinTransformerBlock(
+            1.774 M, 3.939% Params, 4.803 GFLOPs, 3.487% FLOPs,
+            (norm1): LayerNorm(0.001 M, 0.002% Params, 0.002 GFLOPs, 0.001% FLOPs, (384,), eps=1e-05, elementwise_affine=True)
+            (attn): WindowAttention(
+              0.591 M, 1.313% Params, 1.85 GFLOPs, 1.343% FLOPs,
+              (qkv): Linear(0.444 M, 0.985% Params, 1.387 GFLOPs, 1.007% FLOPs, in_features=384, out_features=1152, bias=True)
+              (attn_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (proj): Linear(0.148 M, 0.328% Params, 0.462 GFLOPs, 0.336% FLOPs, in_features=384, out_features=384, bias=True)
+              (proj_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (softmax): Softmax(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, dim=-1)
+            )
+            (drop_path): DropPath(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+            (norm2): LayerNorm(0.001 M, 0.002% Params, 0.002 GFLOPs, 0.001% FLOPs, (384,), eps=1e-05, elementwise_affine=True)
+            (mlp): Mlp(
+              1.182 M, 2.623% Params, 2.949 GFLOPs, 2.141% FLOPs,
+              (fc1): Linear(0.591 M, 1.313% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=384, out_features=1536, bias=True)
+              (act): GELU(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+              (fc2): Linear(0.59 M, 1.310% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=1536, out_features=384, bias=True)
+              (drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+            )
+          )
+          (1): SwinTransformerBlock(
+            1.774 M, 3.939% Params, 4.803 GFLOPs, 3.487% FLOPs,
+            (norm1): LayerNorm(0.001 M, 0.002% Params, 0.002 GFLOPs, 0.001% FLOPs, (384,), eps=1e-05, elementwise_affine=True)
+            (attn): WindowAttention(
+              0.591 M, 1.313% Params, 1.85 GFLOPs, 1.343% FLOPs,
+              (qkv): Linear(0.444 M, 0.985% Params, 1.387 GFLOPs, 1.007% FLOPs, in_features=384, out_features=1152, bias=True)
+              (attn_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (proj): Linear(0.148 M, 0.328% Params, 0.462 GFLOPs, 0.336% FLOPs, in_features=384, out_features=384, bias=True)
+              (proj_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (softmax): Softmax(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, dim=-1)
+            )
+            (drop_path): DropPath(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+            (norm2): LayerNorm(0.001 M, 0.002% Params, 0.002 GFLOPs, 0.001% FLOPs, (384,), eps=1e-05, elementwise_affine=True)
+            (mlp): Mlp(
+              1.182 M, 2.623% Params, 2.949 GFLOPs, 2.141% FLOPs,
+              (fc1): Linear(0.591 M, 1.313% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=384, out_features=1536, bias=True)
+              (act): GELU(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+              (fc2): Linear(0.59 M, 1.310% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=1536, out_features=384, bias=True)
+              (drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+            )
+          )
+          (2): SwinTransformerBlock(
+            1.774 M, 3.939% Params, 4.803 GFLOPs, 3.487% FLOPs,
+            (norm1): LayerNorm(0.001 M, 0.002% Params, 0.002 GFLOPs, 0.001% FLOPs, (384,), eps=1e-05, elementwise_affine=True)
+            (attn): WindowAttention(
+              0.591 M, 1.313% Params, 1.85 GFLOPs, 1.343% FLOPs,
+              (qkv): Linear(0.444 M, 0.985% Params, 1.387 GFLOPs, 1.007% FLOPs, in_features=384, out_features=1152, bias=True)
+              (attn_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (proj): Linear(0.148 M, 0.328% Params, 0.462 GFLOPs, 0.336% FLOPs, in_features=384, out_features=384, bias=True)
+              (proj_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (softmax): Softmax(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, dim=-1)
+            )
+            (drop_path): DropPath(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+            (norm2): LayerNorm(0.001 M, 0.002% Params, 0.002 GFLOPs, 0.001% FLOPs, (384,), eps=1e-05, elementwise_affine=True)
+            (mlp): Mlp(
+              1.182 M, 2.623% Params, 2.949 GFLOPs, 2.141% FLOPs,
+              (fc1): Linear(0.591 M, 1.313% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=384, out_features=1536, bias=True)
+              (act): GELU(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+              (fc2): Linear(0.59 M, 1.310% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=1536, out_features=384, bias=True)
+              (drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+            )
+          )
+          (3): SwinTransformerBlock(
+            1.774 M, 3.939% Params, 4.803 GFLOPs, 3.487% FLOPs,
+            (norm1): LayerNorm(0.001 M, 0.002% Params, 0.002 GFLOPs, 0.001% FLOPs, (384,), eps=1e-05, elementwise_affine=True)
+            (attn): WindowAttention(
+              0.591 M, 1.313% Params, 1.85 GFLOPs, 1.343% FLOPs,
+              (qkv): Linear(0.444 M, 0.985% Params, 1.387 GFLOPs, 1.007% FLOPs, in_features=384, out_features=1152, bias=True)
+              (attn_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (proj): Linear(0.148 M, 0.328% Params, 0.462 GFLOPs, 0.336% FLOPs, in_features=384, out_features=384, bias=True)
+              (proj_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (softmax): Softmax(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, dim=-1)
+            )
+            (drop_path): DropPath(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+            (norm2): LayerNorm(0.001 M, 0.002% Params, 0.002 GFLOPs, 0.001% FLOPs, (384,), eps=1e-05, elementwise_affine=True)
+            (mlp): Mlp(
+              1.182 M, 2.623% Params, 2.949 GFLOPs, 2.141% FLOPs,
+              (fc1): Linear(0.591 M, 1.313% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=384, out_features=1536, bias=True)
+              (act): GELU(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+              (fc2): Linear(0.59 M, 1.310% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=1536, out_features=384, bias=True)
+              (drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+            )
+          )
+          (4): SwinTransformerBlock(
+            1.774 M, 3.939% Params, 4.803 GFLOPs, 3.487% FLOPs,
+            (norm1): LayerNorm(0.001 M, 0.002% Params, 0.002 GFLOPs, 0.001% FLOPs, (384,), eps=1e-05, elementwise_affine=True)
+            (attn): WindowAttention(
+              0.591 M, 1.313% Params, 1.85 GFLOPs, 1.343% FLOPs,
+              (qkv): Linear(0.444 M, 0.985% Params, 1.387 GFLOPs, 1.007% FLOPs, in_features=384, out_features=1152, bias=True)
+              (attn_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (proj): Linear(0.148 M, 0.328% Params, 0.462 GFLOPs, 0.336% FLOPs, in_features=384, out_features=384, bias=True)
+              (proj_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (softmax): Softmax(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, dim=-1)
+            )
+            (drop_path): DropPath(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+            (norm2): LayerNorm(0.001 M, 0.002% Params, 0.002 GFLOPs, 0.001% FLOPs, (384,), eps=1e-05, elementwise_affine=True)
+            (mlp): Mlp(
+              1.182 M, 2.623% Params, 2.949 GFLOPs, 2.141% FLOPs,
+              (fc1): Linear(0.591 M, 1.313% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=384, out_features=1536, bias=True)
+              (act): GELU(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+              (fc2): Linear(0.59 M, 1.310% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=1536, out_features=384, bias=True)
+              (drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+            )
+          )
+          (5): SwinTransformerBlock(
+            1.774 M, 3.939% Params, 4.803 GFLOPs, 3.487% FLOPs,
+            (norm1): LayerNorm(0.001 M, 0.002% Params, 0.002 GFLOPs, 0.001% FLOPs, (384,), eps=1e-05, elementwise_affine=True)
+            (attn): WindowAttention(
+              0.591 M, 1.313% Params, 1.85 GFLOPs, 1.343% FLOPs,
+              (qkv): Linear(0.444 M, 0.985% Params, 1.387 GFLOPs, 1.007% FLOPs, in_features=384, out_features=1152, bias=True)
+              (attn_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (proj): Linear(0.148 M, 0.328% Params, 0.462 GFLOPs, 0.336% FLOPs, in_features=384, out_features=384, bias=True)
+              (proj_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (softmax): Softmax(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, dim=-1)
+            )
+            (drop_path): DropPath(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+            (norm2): LayerNorm(0.001 M, 0.002% Params, 0.002 GFLOPs, 0.001% FLOPs, (384,), eps=1e-05, elementwise_affine=True)
+            (mlp): Mlp(
+              1.182 M, 2.623% Params, 2.949 GFLOPs, 2.141% FLOPs,
+              (fc1): Linear(0.591 M, 1.313% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=384, out_features=1536, bias=True)
+              (act): GELU(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+              (fc2): Linear(0.59 M, 1.310% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=1536, out_features=384, bias=True)
+              (drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+            )
+          )
+        )
+        (downsample): PatchMerging(
+          1.183 M, 2.625% Params, 0.739 GFLOPs, 0.537% FLOPs,
+          (reduction): Linear(1.18 M, 2.619% Params, 0.737 GFLOPs, 0.535% FLOPs, in_features=1536, out_features=768, bias=False)
+          (norm): LayerNorm(0.003 M, 0.007% Params, 0.002 GFLOPs, 0.001% FLOPs, (1536,), eps=1e-05, elementwise_affine=True)
+        )
+      )
+      (3): BasicLayer(
+        14.176 M, 31.468% Params, 9.601 GFLOPs, 6.970% FLOPs,
+        (blocks): ModuleList(
+          14.176 M, 31.468% Params, 9.601 GFLOPs, 6.970% FLOPs,
+          (0): SwinTransformerBlock(
+            7.088 M, 15.734% Params, 4.801 GFLOPs, 3.485% FLOPs,
+            (norm1): LayerNorm(0.002 M, 0.003% Params, 0.001 GFLOPs, 0.001% FLOPs, (768,), eps=1e-05, elementwise_affine=True)
+            (attn): WindowAttention(
+              2.362 M, 5.244% Params, 1.85 GFLOPs, 1.343% FLOPs,
+              (qkv): Linear(1.772 M, 3.933% Params, 1.387 GFLOPs, 1.007% FLOPs, in_features=768, out_features=2304, bias=True)
+              (attn_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (proj): Linear(0.591 M, 1.311% Params, 0.462 GFLOPs, 0.336% FLOPs, in_features=768, out_features=768, bias=True)
+              (proj_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (softmax): Softmax(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, dim=-1)
+            )
+            (drop_path): DropPath(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+            (norm2): LayerNorm(0.002 M, 0.003% Params, 0.001 GFLOPs, 0.001% FLOPs, (768,), eps=1e-05, elementwise_affine=True)
+            (mlp): Mlp(
+              4.722 M, 10.483% Params, 2.949 GFLOPs, 2.141% FLOPs,
+              (fc1): Linear(2.362 M, 5.244% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=768, out_features=3072, bias=True)
+              (act): GELU(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+              (fc2): Linear(2.36 M, 5.239% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=3072, out_features=768, bias=True)
+              (drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+            )
+          )
+          (1): SwinTransformerBlock(
+            7.088 M, 15.734% Params, 4.801 GFLOPs, 3.485% FLOPs,
+            (norm1): LayerNorm(0.002 M, 0.003% Params, 0.001 GFLOPs, 0.001% FLOPs, (768,), eps=1e-05, elementwise_affine=True)
+            (attn): WindowAttention(
+              2.362 M, 5.244% Params, 1.85 GFLOPs, 1.343% FLOPs,
+              (qkv): Linear(1.772 M, 3.933% Params, 1.387 GFLOPs, 1.007% FLOPs, in_features=768, out_features=2304, bias=True)
+              (attn_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (proj): Linear(0.591 M, 1.311% Params, 0.462 GFLOPs, 0.336% FLOPs, in_features=768, out_features=768, bias=True)
+              (proj_drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+              (softmax): Softmax(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, dim=-1)
+            )
+            (drop_path): DropPath(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+            (norm2): LayerNorm(0.002 M, 0.003% Params, 0.001 GFLOPs, 0.001% FLOPs, (768,), eps=1e-05, elementwise_affine=True)
+            (mlp): Mlp(
+              4.722 M, 10.483% Params, 2.949 GFLOPs, 2.141% FLOPs,
+              (fc1): Linear(2.362 M, 5.244% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=768, out_features=3072, bias=True)
+              (act): GELU(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+              (fc2): Linear(2.36 M, 5.239% Params, 1.475 GFLOPs, 1.071% FLOPs, in_features=3072, out_features=768, bias=True)
+              (drop): Dropout(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, p=0.0, inplace=False)
+            )
+          )
+        )
+      )
+    )
+    (norm0): LayerNorm(0.0 M, 0.000% Params, 0.008 GFLOPs, 0.006% FLOPs, (96,), eps=1e-05, elementwise_affine=True)
+    (norm1): LayerNorm(0.0 M, 0.001% Params, 0.004 GFLOPs, 0.003% FLOPs, (192,), eps=1e-05, elementwise_affine=True)
+    (norm2): LayerNorm(0.001 M, 0.002% Params, 0.002 GFLOPs, 0.001% FLOPs, (384,), eps=1e-05, elementwise_affine=True)
+    (norm3): LayerNorm(0.002 M, 0.003% Params, 0.001 GFLOPs, 0.001% FLOPs, (768,), eps=1e-05, elementwise_affine=True)
+  )
+  (neck): FPN(
+    2.73 M, 6.060% Params, 33.205 GFLOPs, 24.106% FLOPs,
+    (lateral_convs): ModuleList(
+      0.37 M, 0.821% Params, 1.857 GFLOPs, 1.348% FLOPs,
+      (0): ConvModule(
+        0.025 M, 0.055% Params, 0.993 GFLOPs, 0.721% FLOPs,
+        (conv): Conv2d(0.025 M, 0.055% Params, 0.993 GFLOPs, 0.721% FLOPs, 96, 256, kernel_size=(1, 1), stride=(1, 1))
+      )
+      (1): ConvModule(
+        0.049 M, 0.110% Params, 0.494 GFLOPs, 0.359% FLOPs,
+        (conv): Conv2d(0.049 M, 0.110% Params, 0.494 GFLOPs, 0.359% FLOPs, 192, 256, kernel_size=(1, 1), stride=(1, 1))
+      )
+      (2): ConvModule(
+        0.099 M, 0.219% Params, 0.246 GFLOPs, 0.179% FLOPs,
+        (conv): Conv2d(0.099 M, 0.219% Params, 0.246 GFLOPs, 0.179% FLOPs, 384, 256, kernel_size=(1, 1), stride=(1, 1))
+      )
+      (3): ConvModule(
+        0.197 M, 0.437% Params, 0.123 GFLOPs, 0.089% FLOPs,
+        (conv): Conv2d(0.197 M, 0.437% Params, 0.123 GFLOPs, 0.089% FLOPs, 768, 256, kernel_size=(1, 1), stride=(1, 1))
+      )
+    )
+    (fpn_convs): ModuleList(
+      2.36 M, 5.240% Params, 31.348 GFLOPs, 22.758% FLOPs,
+      (0): ConvModule(
+        0.59 M, 1.310% Params, 23.603 GFLOPs, 17.135% FLOPs,
+        (conv): Conv2d(0.59 M, 1.310% Params, 23.603 GFLOPs, 17.135% FLOPs, 256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (1): ConvModule(
+        0.59 M, 1.310% Params, 5.901 GFLOPs, 4.284% FLOPs,
+        (conv): Conv2d(0.59 M, 1.310% Params, 5.901 GFLOPs, 4.284% FLOPs, 256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (2): ConvModule(
+        0.59 M, 1.310% Params, 1.475 GFLOPs, 1.071% FLOPs,
+        (conv): Conv2d(0.59 M, 1.310% Params, 1.475 GFLOPs, 1.071% FLOPs, 256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+      (3): ConvModule(
+        0.59 M, 1.310% Params, 0.369 GFLOPs, 0.268% FLOPs,
+        (conv): Conv2d(0.59 M, 1.310% Params, 0.369 GFLOPs, 0.268% FLOPs, 256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      )
+    )
+  )
+  (rpn_head): RPNHead(
+    0.594 M, 1.318% Params, 31.653 GFLOPs, 22.980% FLOPs,
+    (loss_cls): CrossEntropyLoss(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+    (loss_bbox): SmoothL1Loss(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+    (rpn_conv): Conv2d(0.59 M, 1.310% Params, 31.448 GFLOPs, 22.830% FLOPs, 256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (rpn_cls): Conv2d(0.001 M, 0.002% Params, 0.041 GFLOPs, 0.030% FLOPs, 256, 3, kernel_size=(1, 1), stride=(1, 1))
+    (rpn_reg): Conv2d(0.003 M, 0.007% Params, 0.164 GFLOPs, 0.119% FLOPs, 256, 12, kernel_size=(1, 1), stride=(1, 1))
+  )
+  (roi_head): StandardRoIHead(
+    13.902 M, 30.860% Params, 13.902 GFLOPs, 10.092% FLOPs,
+    (bbox_roi_extractor): SingleRoIExtractor(
+      0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs,
+      (roi_layers): ModuleList(
+        0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs,
+        (0): RoIAlign(output_size=(7, 7), spatial_scale=0.25, sampling_ratio=2, pool_mode=avg, aligned=True, use_torchvision=False)
+        (1): RoIAlign(output_size=(7, 7), spatial_scale=0.125, sampling_ratio=2, pool_mode=avg, aligned=True, use_torchvision=False)
+        (2): RoIAlign(output_size=(7, 7), spatial_scale=0.0625, sampling_ratio=2, pool_mode=avg, aligned=True, use_torchvision=False)
+        (3): RoIAlign(output_size=(7, 7), spatial_scale=0.03125, sampling_ratio=2, pool_mode=avg, aligned=True, use_torchvision=False)
+      )
+    )
+    (bbox_head): Shared2FCBBoxHead(
+      13.902 M, 30.860% Params, 13.902 GFLOPs, 10.092% FLOPs,
+      (loss_cls): CrossEntropyLoss(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+      (loss_bbox): SmoothL1Loss(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+      (fc_cls): Linear(0.002 M, 0.005% Params, 0.002 GFLOPs, 0.001% FLOPs, in_features=1024, out_features=2, bias=True)
+      (fc_reg): Linear(0.004 M, 0.009% Params, 0.004 GFLOPs, 0.003% FLOPs, in_features=1024, out_features=4, bias=True)
+      (shared_convs): ModuleList(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+      (shared_fcs): ModuleList(
+        13.896 M, 30.847% Params, 13.894 GFLOPs, 10.086% FLOPs,
+        (0): Linear(12.846 M, 28.517% Params, 12.845 GFLOPs, 9.325% FLOPs, in_features=12544, out_features=1024, bias=True)
+        (1): Linear(1.05 M, 2.330% Params, 1.049 GFLOPs, 0.761% FLOPs, in_features=1024, out_features=1024, bias=True)
+      )
+      (cls_convs): ModuleList(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+      (cls_fcs): ModuleList(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+      (reg_convs): ModuleList(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+      (reg_fcs): ModuleList(0.0 M, 0.000% Params, 0.0 GFLOPs, 0.000% FLOPs, )
+      (relu): ReLU(0.0 M, 0.000% Params, 0.002 GFLOPs, 0.001% FLOPs, inplace=True)
+    )
+  )
+)
+==============================
+Input shape: (3, 800, 800)
+Flops: 137.74 GFLOPs
+Params: 45.05 M
+==============================
+!!!Please be cautious if you use the results in papers. You may need to check if all ops are supported and verify that the flops computation is correct.
+
+进程已结束,退出代码0
